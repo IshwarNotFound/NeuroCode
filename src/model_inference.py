@@ -252,10 +252,22 @@ class ICD10Predictor:
         # Create a boost vector
         boost_vector = np.zeros_like(probs)
         
+        # Penalize the "sticky" code M62.81 if it's dominating without evidence
+        sticky_code = 'M62.81'
+        sticky_idx = -1
+        for idx, c in self.idx_to_code.items():
+            if c.startswith(sticky_code):
+                sticky_idx = idx
+                break
+        
+        if sticky_idx != -1:
+            # Check if "weakness" is actually in the text
+            if 'weakness' not in text_lower and 'muscle' not in text_lower:
+                probs[sticky_idx] *= 0.5  # Penalize by 50%
+        
+        matched_rule = False
         for code, keywords in keyword_rules.items():
             # Find index for this code
-            # Note: idx_to_code is idx->code. We need code->idx.
-            # We can iterate idx_to_code to find it (cached map would be better but this is fast enough for 100 classes)
             code_idx = -1
             for idx, c in self.idx_to_code.items():
                 if c.startswith(code): # Match base code
@@ -266,9 +278,16 @@ class ICD10Predictor:
                 # Check for keywords
                 for kw in keywords:
                     if kw in text_lower:
-                        # Apply boost (additive probability)
-                        probs[code_idx] += 0.4 # Significant boost
+                        # Apply STRONG boost (Override model)
+                        probs[code_idx] = 1.0 # Force certainty
+                        matched_rule = True
+                        # print(f"DEBUG: Boosted {code} based on '{kw}'")
                         break
+                        
+        # If a rule matched, suppress others to ensure clarity
+        # (Optional: reduces clutter from low-confidence noise)
+        if matched_rule:
+           pass
         
         # Re-normalize/Clip (sigmoid output is 0-1, boosting can go >1)
         probs = np.clip(probs, 0.0, 1.0)
