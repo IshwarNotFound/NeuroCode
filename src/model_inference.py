@@ -213,6 +213,68 @@ class ICD10Predictor:
         # Get probabilities
         probs = predictions.cpu().numpy()[0]
         
+        # --- HYBRID RULE-BASED BOOSTING ---
+        # Boost confidence for clear keyword matches to ensure robustness
+        # This helps when the model is uncertain or text is short
+        text_lower = text.lower()
+        
+        keyword_rules = {
+            'Z91.81': ['fall', 'falling', 'fell'],
+            'E78.5': ['hyperlipidemia', 'cholesterol', 'lipid'],
+            'M10.33': ['gout', 'podagra'],
+            'E03.9': ['hypothyroidism', 'thyroid', 'tsh'],
+            'I13.0': ['hypertensive', 'ckd', 'kidney'],
+            'M17.00': ['osteoarthritis', 'knee'],
+            'K21.9': ['gerd', 'reflux', 'heartburn'],
+            'I25.10': ['coronary', 'artery', 'cad', 'angina'],
+            'I10': ['hypertension', 'pressure'],
+            'N18.2': ['ckd', 'kidney', 'renal'],
+            'N18.3': ['ckd', 'kidney', 'renal'],
+            'G89.29': ['pain', 'ache'],
+            'I50.32': ['heart failure', 'chf'],
+            'I48.0': ['atrial fibrillation', 'afib'],
+            'E11.9': ['diabetes', 'dm'],
+            'E11.42': ['neuropathy', 'numbness'],
+            'G30.1': ['alzheimer', 'dementia', 'memory'],
+            'J44.9': ['copd', 'obstructive pulmonary'],
+            'I70.0': ['atherosclerosis', 'plaque'],
+            'M81.0': ['osteoporosis', 'bone'],
+            'F32.A': ['depression', 'depressive', 'sad'],
+            'F41.1': ['anxiety', 'anxious', 'worry'],
+            'G47.33': ['apnea', 'snoring'],
+            'N39.0': ['uti', 'urinary', 'infection'],
+            'N40.0': ['bph', 'prostatic', 'prostate'],
+            'M54.5': ['back pain', 'lumbar'],
+            'R26.81': ['unsteadiness', 'walking'],
+            'R26.2': ['walking', 'gait']
+        }
+        
+        # Create a boost vector
+        boost_vector = np.zeros_like(probs)
+        
+        for code, keywords in keyword_rules.items():
+            # Find index for this code
+            # Note: idx_to_code is idx->code. We need code->idx.
+            # We can iterate idx_to_code to find it (cached map would be better but this is fast enough for 100 classes)
+            code_idx = -1
+            for idx, c in self.idx_to_code.items():
+                if c.startswith(code): # Match base code
+                    code_idx = idx
+                    break
+            
+            if code_idx != -1:
+                # Check for keywords
+                for kw in keywords:
+                    if kw in text_lower:
+                        # Apply boost (additive probability)
+                        probs[code_idx] += 0.4 # Significant boost
+                        break
+        
+        # Re-normalize/Clip (sigmoid output is 0-1, boosting can go >1)
+        probs = np.clip(probs, 0.0, 1.0)
+        
+        # ----------------------------------
+        
         # Get top predictions above threshold
         top_indices = np.argsort(probs)[::-1]
         
