@@ -35,9 +35,9 @@ PHYSICAL EXAMINATION:
 Vital signs stable. Patient demonstrates unsteady gait. Berg Balance Scale score 32/56 indicating high fall risk.
 
 DISCHARGE DIAGNOSIS:
-1. History of falling (Z91.81)
-2. Unsteadiness on feet (R26.81)
-3. Muscle weakness (M62.81)"""
+1. History of falling
+2. Unsteadiness on feet
+3. Muscle weakness"""
     },
     
     2: {
@@ -60,9 +60,9 @@ MEDICATIONS:
 - Allopurinol 300mg daily
 
 DISCHARGE DIAGNOSIS:
-1. Hyperlipidemia, unspecified (E78.5)
-2. Gout, left ankle and foot (M10.33)
-3. Chronic pain syndrome (G89.29)"""
+1. Hyperlipidemia, unspecified
+2. Gout, left ankle and foot
+3. Chronic pain syndrome"""
     },
     
     3: {
@@ -84,9 +84,9 @@ MEDICATIONS:
 - Levothyroxine 125mcg daily
 
 DISCHARGE DIAGNOSIS:
-1. Hypothyroidism, unspecified (E03.9)
-2. Chronic kidney disease, stage 2 (N18.2)
-3. Muscle weakness (M62.81)"""
+1. Hypothyroidism, unspecified
+2. Chronic kidney disease, stage 2
+3. Muscle weakness"""
     },
     
     4: {
@@ -111,10 +111,10 @@ MEDICATIONS:
 - Atorvastatin 80mg daily
 
 DISCHARGE DIAGNOSIS:
-1. Hypertensive CKD with stage 1-4 CKD (I13.0)
-2. Coronary artery disease (I25.10)
-3. Essential hypertension (I10)
-4. Chronic kidney disease stage 3 (N18.31)"""
+1. Hypertensive CKD with stage 1-4 CKD
+2. Coronary artery disease
+3. Essential hypertension
+4. Chronic kidney disease stage 3"""
     },
     
     5: {
@@ -136,9 +136,9 @@ PHYSICAL EXAMINATION:
 Bilateral knee crepitus noted. Limited range of motion. Tenderness to palpation bilateral medial joint lines.
 
 DISCHARGE DIAGNOSIS:
-1. Primary osteoarthritis, unspecified knee (M17.00)
-2. Chronic pain syndrome (G89.29)
-3. Difficulty in walking (R26.2)"""
+1. Primary osteoarthritis, unspecified knee
+2. Chronic pain syndrome
+3. Difficulty in walking"""
     },
     
     6: {
@@ -161,9 +161,9 @@ MEDICATIONS:
 - CPAP at night
 
 DISCHARGE DIAGNOSIS:
-1. GERD without esophagitis (K21.9)
-2. Obstructive sleep apnea (G47.00)
-3. Obesity (E66.01)"""
+1. GERD without esophagitis
+2. Obstructive sleep apnea
+3. Obesity"""
     },
     
     7: {
@@ -189,10 +189,10 @@ MEDICATIONS:
 - Lisinopril 10mg daily
 
 DISCHARGE DIAGNOSIS:
-1. Acute on chronic heart failure (I50.32)
-2. Atrial fibrillation (I48.0)
-3. Essential hypertension (I10)
-4. Coronary artery disease (I25.10)"""
+1. Acute on chronic heart failure
+2. Atrial fibrillation
+3. Essential hypertension
+4. Coronary artery disease"""
     },
     
     8: {
@@ -215,9 +215,9 @@ MEDICATIONS:
 - Gabapentin 300mg TID
 
 DISCHARGE DIAGNOSIS:
-1. Type 2 DM with diabetic neuropathy (E11.42)
-2. Peripheral neuropathy (G62.9)
-3. Chronic pain syndrome (G89.29)"""
+1. Type 2 DM with diabetic neuropathy
+2. Peripheral neuropathy
+3. Chronic pain syndrome"""
     },
     
     9: {
@@ -240,9 +240,9 @@ MEDICATIONS:
 - Quetiapine 25mg BID
 
 DISCHARGE DIAGNOSIS:
-1. Alzheimer's disease with early onset (G30.1)
-2. Dementia with behavioral disturbance (F02.B3)
-3. Cognitive decline (R41.841)"""
+1. Alzheimer's disease with early onset
+2. Dementia with behavioral disturbance
+3. Cognitive decline"""
     },
     
     10: {
@@ -266,9 +266,9 @@ MEDICATIONS:
 - Prednisone 40mg daily
 
 DISCHARGE DIAGNOSIS:
-1. COPD, unspecified (J44.9)
-2. Acute respiratory failure (J96.01)
-3. History of tobacco use (Z87.891)"""
+1. COPD, unspecified
+2. Acute respiratory failure
+3. History of tobacco use"""
     },
     
     11: {
@@ -293,10 +293,10 @@ MEDICATIONS:
 - Metformin held due to renal function
 
 DISCHARGE DIAGNOSIS:
-1. Type 2 DM with diabetic CKD (E11.22)
-2. Chronic kidney disease stage 3 (N18.31)
-3. Essential hypertension (I10)
-4. Hyperlipidemia (E78.5)"""
+1. Type 2 DM with diabetic CKD
+2. Chronic kidney disease stage 3
+3. Essential hypertension
+4. Hyperlipidemia"""
     },
     
     12: {
@@ -321,10 +321,10 @@ MEDICATIONS:
 - Atorvastatin 80mg daily
 
 DISCHARGE DIAGNOSIS:
-1. Atherosclerosis of aorta (I70.0)
-2. Peripheral vascular disease (I73.9)
-3. Coronary artery disease (I25.10)
-4. Hypertensive heart disease (I11.0)"""
+1. Atherosclerosis of aorta
+2. Peripheral vascular disease
+3. Coronary artery disease
+4. Hypertensive heart disease"""
     },
     
     13: {
@@ -349,10 +349,10 @@ MEDICATIONS:
 - Vitamin D3 2000 units daily
 
 DISCHARGE DIAGNOSIS:
-1. Osteoporosis without fracture (M81.0)
-2. History of falling (Z91.81)
-3. Vitamin D deficiency (E55.9)
-4. Muscle weakness, generalized (M62.81)"""
+1. Osteoporosis without fracture
+2. History of falling
+3. Vitamin D deficiency
+4. Muscle weakness, generalized"""
     },
     
     14: {
@@ -377,10 +377,10 @@ MEDICATIONS:
 - Levothyroxine 75mcg daily
 
 DISCHARGE DIAGNOSIS:
-1. Major depressive disorder (F32.A)
-2. Generalized anxiety disorder (F41.1)
-3. Insomnia (F51.04)
-4. Hypothyroidism (E03.9)"""
+1. Major depressive disorder
+2. Generalized anxiety disorder
+3. Insomnia
+4. Hypothyroidism"""
     },
     
     15: {
@@ -407,11 +407,11 @@ MEDICATIONS:
 - Insulin
 
 DISCHARGE DIAGNOSIS:
-1. Heart failure, unspecified (I50.9)
-2. Chronic kidney disease stage 4 (N18.4)
-3. Anemia in CKD (D63.1)
-4. Atrial fibrillation (I48.91)
-5. Type 2 diabetes (E11.9)"""
+1. Heart failure, unspecified
+2. Chronic kidney disease stage 4
+3. Anemia in CKD
+4. Atrial fibrillation
+5. Type 2 diabetes"""
     },
     
     16: {
@@ -436,10 +436,10 @@ MEDICATIONS:
 - Omeprazole 20mg daily
 
 DISCHARGE DIAGNOSIS:
-1. Obstructive sleep apnea (G47.33)
-2. Morbid obesity (E66.01)
-3. Essential hypertension (I10)
-4. GERD (K21.9)"""
+1. Obstructive sleep apnea
+2. Morbid obesity
+3. Essential hypertension
+4. GERD"""
     },
     
     17: {
@@ -464,10 +464,10 @@ MEDICATIONS:
 - Physical therapy referral
 
 DISCHARGE DIAGNOSIS:
-1. Low back pain, unspecified (M54.50)
-2. Lumbar radiculopathy (M54.16)
-3. Difficulty in walking (R26.2)
-4. History of falling (Z91.81)"""
+1. Low back pain, unspecified
+2. Lumbar radiculopathy
+3. Difficulty in walking
+4. History of falling"""
     },
     
     18: {
@@ -493,10 +493,10 @@ MEDICATIONS:
 - Levothyroxine 100mcg daily
 
 DISCHARGE DIAGNOSIS:
-1. Constipation, unspecified (K59.00)
-2. Irritable bowel syndrome (K58.9)
-3. Generalized anxiety disorder (F41.1)
-4. Hypothyroidism (E03.9)"""
+1. Constipation, unspecified
+2. Irritable bowel syndrome
+3. Generalized anxiety disorder
+4. Hypothyroidism"""
     },
     
     19: {
@@ -521,10 +521,10 @@ MEDICATIONS:
 - Amlodipine 5mg daily
 
 DISCHARGE DIAGNOSIS:
-1. BPH without LUTS (N40.0)
-2. Urinary frequency (R35.0)
-3. Essential hypertension (I10)
-4. Nocturia (R35.1)"""
+1. BPH without LUTS
+2. Urinary frequency
+3. Essential hypertension
+4. Nocturia"""
     },
     
     20: {
@@ -551,11 +551,11 @@ MEDICATIONS:
 - Aspirin 81mg daily
 
 DISCHARGE DIAGNOSIS:
-1. Cerebrovascular disease (I67.9)
-2. Hemiplegia following stroke (I69.351)
-3. Atrial fibrillation (I48.0)
-4. Essential hypertension (I10)
-5. Hyperlipidemia (E78.5)"""
+1. Cerebrovascular disease
+2. Hemiplegia following stroke
+3. Atrial fibrillation
+4. Essential hypertension
+5. Hyperlipidemia"""
     },
     
     21: {
@@ -581,10 +581,10 @@ MEDICATIONS:
 - Sumatriptan PRN
 
 DISCHARGE DIAGNOSIS:
-1. Recurrent major depression, moderate (F33.1)
-2. Generalized anxiety disorder (F41.9)
-3. Insomnia (F51.01)
-4. Migraine (G43.909)"""
+1. Recurrent major depression, moderate
+2. Generalized anxiety disorder
+3. Insomnia
+4. Migraine"""
     },
     
     22: {
@@ -609,10 +609,10 @@ MEDICATIONS:
 - Physical therapy ongoing
 
 DISCHARGE DIAGNOSIS:
-1. Secondary osteoarthritis, left hip (M16.11)
-2. Primary osteoarthritis, unspecified knee (M17.00)
-3. Chronic pain syndrome (G89.29)
-4. Difficulty in walking (R26.2)"""
+1. Secondary osteoarthritis, left hip
+2. Primary osteoarthritis, unspecified knee
+3. Chronic pain syndrome
+4. Difficulty in walking"""
     },
     
     23: {
@@ -638,10 +638,10 @@ MEDICATIONS:
 - Acetaminophen PRN
 
 DISCHARGE DIAGNOSIS:
-1. Spinal stenosis, lumbar region (M48.061)
-2. Low back pain (M54.50)
-3. Osteoporosis without fracture (M81.0)
-4. Vitamin D deficiency (E55.9)"""
+1. Spinal stenosis, lumbar region
+2. Low back pain
+3. Osteoporosis without fracture
+4. Vitamin D deficiency"""
     },
     
     24: {
@@ -667,10 +667,10 @@ MEDICATIONS:
 - Albuterol inhaler PRN
 
 DISCHARGE DIAGNOSIS:
-1. Secondary pulmonary hypertension (I27.20)
-2. Chronic respiratory failure, hypoxic (J96.11)
-3. COPD (J44.9)
-4. Peripheral edema (R60.0)"""
+1. Secondary pulmonary hypertension
+2. Chronic respiratory failure, hypoxic
+3. COPD
+4. Peripheral edema"""
     },
     
     25: {
@@ -696,11 +696,11 @@ MEDICATIONS:
 - Donepezil 10mg daily
 
 DISCHARGE DIAGNOSIS:
-1. Urinary tract infection (N39.0)
-2. Chronic kidney disease stage 3 (N18.31)
-3. Overactive bladder (N32.81)
-4. Dementia, unspecified (F03.90)
-5. History of falling (Z91.81)"""
+1. Urinary tract infection
+2. Chronic kidney disease stage 3
+3. Overactive bladder
+4. Dementia, unspecified
+5. History of falling"""
     }
 }
 
@@ -711,4 +711,3 @@ def get_case(case_number):
 def get_case_titles():
     """Get list of all case titles"""
     return [DISCHARGE_SUMMARIES[i]["title"] for i in range(1, 26)]
-
