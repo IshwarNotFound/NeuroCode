@@ -1,0 +1,15 @@
+{
+  "training_date": "20260202_201842",
+  "total_documents": 1063,
+  "train_size": 744,
+  "val_size": 159,
+  "test_size": 160,
+  "vocab_size": 6189,
+  "n_classes": 100,
+  "epochs_trained": 30,
+  "best_val_f1": 0.4507829977628635,
+  "test_micro_f1": 0.48018380241240666,
+  "test_macro_f1": 0.21674730512005533,
+  "test_roc_auc": 0.886029340037311,
+  "model_path": "/content/drive/MyDrive/ICD10_Project/models/icd10_cnn_20260202_201842.pt"
+}

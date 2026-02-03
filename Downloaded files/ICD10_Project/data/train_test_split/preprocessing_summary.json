@@ -1,0 +1,56 @@
+{
+  "preprocessing_date": "2026-02-02T19:38:17.057164",
+  "total_documents": 1063,
+  "vocab_size": 6189,
+  "max_sequence_length": 2000,
+  "n_classes": 100,
+  "min_code_freq": 10,
+  "train_size": 744,
+  "val_size": 159,
+  "test_size": 160,
+  "avg_tokens_per_doc": 529.5945437441204,
+  "avg_labels_per_doc": 7.600188146754468,
+  "label_sparsity": 0.9239981185324553,
+  "top_10_codes": [
+    {
+      "code": "Z91.81",
+      "freq": 368
+    },
+    {
+      "code": "E78.5",
+      "freq": 283
+    },
+    {
+      "code": "M10.33",
+      "freq": 207
+    },
+    {
+      "code": "E03.9",
+      "freq": 193
+    },
+    {
+      "code": "I13.0",
+      "freq": 187
+    },
+    {
+      "code": "M17.00",
+      "freq": 174
+    },
+    {
+      "code": "K21.9",
+      "freq": 173
+    },
+    {
+      "code": "I25.10",
+      "freq": 166
+    },
+    {
+      "code": "Z55.6",
+      "freq": 161
+    },
+    {
+      "code": "N18.2",
+      "freq": 153
+    }
+  ]
+}

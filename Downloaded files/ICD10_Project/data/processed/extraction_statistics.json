@@ -1,0 +1,104 @@
+{
+  "extraction_date": "2026-02-02 19:28:58",
+  "total_documents": 1063,
+  "successful_extractions": 1063,
+  "success_rate": 1.0,
+  "pt_ot_documents": 346,
+  "home_health_documents": 717,
+  "native_extractions": 853,
+  "ocr_extractions": 210,
+  "total_icd10_codes": 14988,
+  "unique_icd10_codes": 1904,
+  "avg_codes_per_doc": 14.099717779868298,
+  "median_codes_per_doc": 13.0,
+  "max_codes_per_doc": 102,
+  "min_codes_per_doc": 0,
+  "codes_freq_100_plus": 24,
+  "codes_freq_10_to_99": 250,
+  "codes_freq_5_to_9": 209,
+  "codes_freq_under_5": 1421,
+  "top_20_codes": [
+    {
+      "code": "Z91.81",
+      "count": 368
+    },
+    {
+      "code": "E78.5",
+      "count": 283
+    },
+    {
+      "code": "M10.33",
+      "count": 207
+    },
+    {
+      "code": "E03.9",
+      "count": 193
+    },
+    {
+      "code": "I13.0",
+      "count": 187
+    },
+    {
+      "code": "M17.00",
+      "count": 174
+    },
+    {
+      "code": "K21.9",
+      "count": 173
+    },
+    {
+      "code": "I25.10",
+      "count": 166
+    },
+    {
+      "code": "Z55.6",
+      "count": 161
+    },
+    {
+      "code": "N18.2",
+      "count": 153
+    },
+    {
+      "code": "I10",
+      "count": 130
+    },
+    {
+      "code": "E11.22",
+      "count": 129
+    },
+    {
+      "code": "I70.0",
+      "count": 126
+    },
+    {
+      "code": "I50.32",
+      "count": 125
+    },
+    {
+      "code": "G30.1",
+      "count": 121
+    },
+    {
+      "code": "M17.10",
+      "count": 121
+    },
+    {
+      "code": "Z79.82",
+      "count": 117
+    },
+    {
+      "code": "M62.81",
+      "count": 116
+    },
+    {
+      "code": "G31.1",
+      "count": 116
+    },
+    {
+      "code": "Z79.01",
+      "count": 116
+    }
+  ],
+  "avg_text_length": 18097.67544684854,
+  "median_text_length": 16234.0
+}
