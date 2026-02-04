@@ -146,41 +146,40 @@ def render_step_indicator():
     st.markdown("---")
 
 def step_1_input():
-    # Hero Section - NeuroCode Branding
+    # Hero Section - NeuroCode Branding (COMPACT VERSION - NO BRAIN)
     st.markdown("""
-    <div style="text-align: center; margin-bottom: 2.5rem; padding: 1rem 0;">
-        <div style="font-size: 4.5rem; margin-bottom: 0.5rem;">🧠</div>
-        <h1 style="font-size: 4rem; font-weight: 900; margin-bottom: 0.5rem;
+    <div style="text-align: center; margin-bottom: 1.5rem; padding: 0.5rem 0;">
+        <h1 style="font-size: 3.5rem; font-weight: 900; margin-bottom: 0.3rem;
                    background: linear-gradient(135deg, #2E6F40 0%, #68BA7F 50%, #CFFFDC 100%);
                    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                    background-clip: text; text-shadow: 0 0 60px rgba(46, 111, 64, 0.5);">
-            NeuroCode
+            ✨ NeuroCode
         </h1>
-        <p style="font-size: 1.4rem; color: #94a3b8; font-weight: 400; letter-spacing: 1px;">
+        <p style="font-size: 1.2rem; color: #c8e6cf; font-weight: 500; letter-spacing: 1px; margin-bottom: 0.5rem;">
             Neural Networks for Medical Coding
         </p>
-        <div style="margin-top: 1rem; display: flex; justify-content: center; gap: 1.5rem;">
-            <span style="padding: 0.5rem 1rem; background: rgba(46, 111, 64, 0.15); border-radius: 50px; 
-                         font-size: 0.85rem; color: #68BA7F;">🚀 AI-Powered</span>
-            <span style="padding: 0.5rem 1rem; background: rgba(104, 186, 127, 0.15); border-radius: 50px; 
-                         font-size: 0.85rem; color: #68BA7F;">🔒 100% Secure</span>
-            <span style="padding: 0.5rem 1rem; background: rgba(207, 255, 220, 0.15); border-radius: 50px; 
-                         font-size: 0.85rem; color: #CFFFDC;">⚡ Instant Results</span>
+        <div style="display: flex; justify-content: center; gap: 1rem;">
+            <span style="padding: 0.4rem 0.8rem; background: rgba(46, 111, 64, 0.2); border-radius: 50px; 
+                         font-size: 0.75rem; color: #68BA7F;">🚀 AI-Powered</span>
+            <span style="padding: 0.4rem 0.8rem; background: rgba(104, 186, 127, 0.2); border-radius: 50px; 
+                         font-size: 0.75rem; color: #68BA7F;">🔒 100% Secure</span>
+            <span style="padding: 0.4rem 0.8rem; background: rgba(207, 255, 220, 0.2); border-radius: 50px; 
+                         font-size: 0.75rem; color: #CFFFDC;">⚡ Instant Results</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<p style='text-align: center; font-size: 1.1rem; color: #64748b; margin-bottom: 2rem;'>Choose your input method</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 1rem; color: #7a9a82; margin-bottom: 1rem;'>Choose your input method</p>", unsafe_allow_html=True)
     
-    # Define card HTML template
+    # Define card HTML template - COMPACT
     card_html = """
     <div style="background: linear-gradient(145deg, rgba(29, 46, 34, 0.8), rgba(23, 36, 25, 0.9));
-                border: 2px solid rgba(46, 111, 64, 0.3); border-radius: 20px;
-                padding: 2rem 1.5rem; text-align: center; min-height: 180px;
+                border: 2px solid rgba(46, 111, 64, 0.3); border-radius: 16px;
+                padding: 1.25rem 1rem; text-align: center; min-height: 130px;
                 display: flex; flex-direction: column; justify-content: center;">
-        <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">{icon}</div>
-        <h3 style="font-size: 1.4rem; color: #ffffff; margin-bottom: 0.4rem;">{title}</h3>
-        <p style="font-size: 0.85rem; color: #c8e6cf;">{desc}</p>
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">{icon}</div>
+        <h3 style="font-size: 1.2rem; color: #ffffff; margin-bottom: 0.25rem;">{title}</h3>
+        <p style="font-size: 0.75rem; color: #c8e6cf;">{desc}</p>
     </div>
     """
     
@@ -256,12 +255,16 @@ def step_1_input():
 
 
 def step_2_preview():
-    # NeuroCode branded header
+    # Sleek header without brain symbol
     st.markdown("""
     <div style="text-align: center; margin-bottom: 1.5rem;">
-        <div style="font-size: 2rem; margin-bottom: 0.3rem;">🧠</div>
-        <h1 style="font-size: 2rem; margin-bottom: 0.25rem; color: #ffffff;">Review Document</h1>
-        <p style="font-size: 0.95rem; color: #94a3b8;">Verify content before NeuroCode analysis</p>
+        <h1 style="font-size: 2.2rem; margin-bottom: 0.3rem;
+                   background: linear-gradient(135deg, #68BA7F 0%, #CFFFDC 100%);
+                   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                   background-clip: text;">
+            📝 Document Preview
+        </h1>
+        <p style="font-size: 0.9rem; color: #7a9a82;">Review your content before AI analysis</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -457,8 +460,7 @@ def step_3_results():
 # ==================== MAIN ====================
 
 def main():
-    render_step_indicator()
-    
+    # No step indicator - cleaner look
     if st.session_state.step == 1:
         step_1_input()
     elif st.session_state.step == 2:

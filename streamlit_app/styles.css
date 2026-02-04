@@ -685,7 +685,7 @@ button[kind="secondary"]:hover {
     fill: var(--text-secondary) !important;
 }
 
-/* Dropdown menu */
+/* Dropdown menu - FIXED POSITIONING GLITCH */
 [role="listbox"],
 [data-baseweb="menu"],
 [data-baseweb="popover"] {
@@ -693,8 +693,10 @@ button[kind="secondary"]:hover {
     border: 2px solid var(--border-subtle) !important;
     border-radius: 16px !important;
     box-shadow: var(--shadow-elevated), 0 0 40px rgba(46, 111, 64, 0.2) !important;
-    animation: fadeInUp 0.2s ease-out !important;
     overflow: hidden !important;
+    /* Fix for flash at top-left - use opacity fade instead of transform */
+    animation: fadeIn 0.15s ease-out !important;
+    will-change: opacity !important;
 }
 
 /* Dropdown options - MAKE TEXT VISIBLE */
