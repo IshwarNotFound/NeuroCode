@@ -2,39 +2,51 @@
 =========================================================
    ICD-10 AUTO-CODING SYSTEM
    JAW-DROPPING PREMIUM UI with ANIMATIONS
-   Dark Mode + Glassmorphism + Neon Accents
+   Dark Mode + Glassmorphism + Lush Forest Accents
 =========================================================
 */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* ========== CSS VARIABLES ========== */
+/* ========== CSS VARIABLES - LUSH FOREST PALETTE ========== */
 :root {
-    --bg-primary: #0a0e1a;
-    --bg-secondary: #0f1629;
-    --bg-card: #151c2f;
-    --bg-elevated: #1a2340;
+    /* Dark forest backgrounds */
+    --bg-primary: #0d1a12;
+    --bg-secondary: #121f16;
+    --bg-card: #172419;
+    --bg-elevated: #1d2e22;
 
+    /* Text colors - light mint for contrast */
     --text-primary: #ffffff;
-    --text-secondary: #b8c5d9;
-    --text-muted: #6b7a94;
+    --text-secondary: #c8e6cf;
+    --text-muted: #7a9a82;
 
-    --accent-purple: #a855f7;
-    --accent-pink: #ec4899;
-    --accent-blue: #3b82f6;
-    --accent-cyan: #06b6d4;
-    --accent-green: #10b981;
-    --accent-orange: #f59e0b;
+    /* Forest green accents - from Lush Forest palette */
+    --accent-purple: #2E6F40;
+    /* Primary forest green */
+    --accent-pink: #68BA7F;
+    /* Medium green */
+    --accent-blue: #2E6F40;
+    /* Reusing forest green */
+    --accent-cyan: #CFFFDC;
+    /* Light mint */
+    --accent-green: #68BA7F;
+    /* Medium green */
+    --accent-orange: #8BC99B;
+    /* Soft sage green */
 
-    --gradient-main: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f43f5e 100%);
-    --gradient-card: linear-gradient(145deg, rgba(168, 85, 247, 0.1) 0%, rgba(236, 72, 153, 0.05) 100%);
-    --gradient-glow: linear-gradient(135deg, rgba(168, 85, 247, 0.4) 0%, rgba(236, 72, 153, 0.4) 100%);
+    /* Main gradients using forest colors */
+    --gradient-main: linear-gradient(135deg, #2E6F40 0%, #68BA7F 50%, #CFFFDC 100%);
+    --gradient-card: linear-gradient(145deg, rgba(46, 111, 64, 0.1) 0%, rgba(104, 186, 127, 0.05) 100%);
+    --gradient-glow: linear-gradient(135deg, rgba(46, 111, 64, 0.4) 0%, rgba(104, 186, 127, 0.4) 100%);
 
-    --border-subtle: rgba(168, 85, 247, 0.2);
-    --border-active: rgba(168, 85, 247, 0.5);
+    /* Forest green borders */
+    --border-subtle: rgba(46, 111, 64, 0.3);
+    --border-active: rgba(104, 186, 127, 0.6);
 
-    --shadow-glow: 0 0 60px rgba(168, 85, 247, 0.3);
+    /* Forest glow shadows */
+    --shadow-glow: 0 0 60px rgba(46, 111, 64, 0.3);
     --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
     --shadow-elevated: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
@@ -112,11 +124,11 @@
 
     0%,
     100% {
-        box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+        box-shadow: 0 0 20px rgba(46, 111, 64, 0.3);
     }
 
     50% {
-        box-shadow: 0 0 40px rgba(168, 85, 247, 0.6);
+        box-shadow: 0 0 40px rgba(46, 111, 64, 0.6);
     }
 }
 
@@ -143,6 +155,87 @@
 
     100% {
         background-position: 0% 50%;
+    }
+}
+
+/* ========== ENHANCED SMOOTH ANIMATIONS ========== */
+@keyframes smoothBreathe {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.02);
+        opacity: 0.95;
+    }
+}
+
+@keyframes gentleFloat {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    25% {
+        transform: translateY(-5px) rotate(0.5deg);
+    }
+
+    75% {
+        transform: translateY(5px) rotate(-0.5deg);
+    }
+}
+
+@keyframes leafSway {
+
+    0%,
+    100% {
+        transform: rotate(-2deg) translateX(0);
+    }
+
+    50% {
+        transform: rotate(2deg) translateX(3px);
+    }
+}
+
+@keyframes smoothFadeSlide {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes subtleGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 4px 20px rgba(46, 111, 64, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 8px 30px rgba(46, 111, 64, 0.35);
+    }
+}
+
+@keyframes contentReveal {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+        filter: blur(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
     }
 }
 
@@ -243,12 +336,23 @@
     box-sizing: border-box;
 }
 
+/* Global smooth transitions for all interactive elements */
+button,
+input,
+textarea,
+select,
+a,
+[role="button"] {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
 html,
 body,
 [data-testid="stAppViewContainer"],
 .stApp {
     background: var(--bg-primary) !important;
     color: var(--text-primary) !important;
+    scroll-behavior: smooth;
 }
 
 /* Hide default Streamlit elements */
@@ -269,9 +373,9 @@ header,
     right: 0;
     bottom: 0;
     background:
-        radial-gradient(ellipse at 20% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+        radial-gradient(ellipse at 20% 20%, rgba(46, 111, 64, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(104, 186, 127, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(207, 255, 220, 0.05) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
     animation: bgGradientMove 20s ease-in-out infinite;
@@ -285,7 +389,7 @@ header,
     width: 400px;
     height: 400px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(46, 111, 64, 0.2) 0%, transparent 70%);
     top: 10%;
     left: 5%;
     pointer-events: none;
@@ -301,7 +405,7 @@ header,
     width: 300px;
     height: 300px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(104, 186, 127, 0.15) 0%, transparent 70%);
     bottom: 15%;
     right: 10%;
     pointer-events: none;
@@ -316,7 +420,7 @@ header,
     width: 250px;
     height: 250px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(207, 255, 220, 0.12) 0%, transparent 70%);
     top: 50%;
     right: 30%;
     pointer-events: none;
@@ -437,7 +541,7 @@ label {
     animation: iconBounce 0.6s ease !important;
 }
 
-/* ========== BUTTONS - NEON GLOW ========== */
+/* ========== BUTTONS - FOREST GLOW ========== */
 .stButton>button {
     background: var(--gradient-main) !important;
     background-size: 200% 200% !important;
@@ -450,7 +554,7 @@ label {
     text-transform: uppercase !important;
     letter-spacing: 1px !important;
     transition: all 0.3s ease !important;
-    box-shadow: 0 8px 30px rgba(168, 85, 247, 0.4) !important;
+    box-shadow: 0 8px 30px rgba(46, 111, 64, 0.4) !important;
     animation: fadeInUp 0.5s ease-out, gradientShift 3s ease infinite !important;
     position: relative !important;
     overflow: hidden !important;
@@ -469,7 +573,7 @@ label {
 
 .stButton>button:hover {
     transform: translateY(-4px) scale(1.02) !important;
-    box-shadow: 0 12px 40px rgba(168, 85, 247, 0.6), 0 0 60px rgba(236, 72, 153, 0.3) !important;
+    box-shadow: 0 12px 40px rgba(46, 111, 64, 0.6), 0 0 60px rgba(104, 186, 127, 0.3) !important;
 }
 
 .stButton>button:hover::before {
@@ -490,9 +594,9 @@ button[kind="secondary"],
 }
 
 button[kind="secondary"]:hover {
-    background: rgba(168, 85, 247, 0.1) !important;
+    background: rgba(46, 111, 64, 0.1) !important;
     border-color: var(--accent-pink) !important;
-    box-shadow: 0 0 30px rgba(168, 85, 247, 0.3) !important;
+    box-shadow: 0 0 30px rgba(46, 111, 64, 0.3) !important;
 }
 
 /* ========== TEXT INPUTS - VISIBLE TEXT ========== */
@@ -511,7 +615,7 @@ button[kind="secondary"]:hover {
 .stTextInput input:focus,
 .stTextArea textarea:focus {
     border-color: var(--accent-purple) !important;
-    box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2), 0 0 30px rgba(168, 85, 247, 0.1) !important;
+    box-shadow: 0 0 0 4px rgba(46, 111, 64, 0.2), 0 0 30px rgba(46, 111, 64, 0.1) !important;
     outline: none !important;
 }
 
@@ -588,7 +692,7 @@ button[kind="secondary"]:hover {
     background: var(--bg-elevated) !important;
     border: 2px solid var(--border-subtle) !important;
     border-radius: 16px !important;
-    box-shadow: var(--shadow-elevated), 0 0 40px rgba(168, 85, 247, 0.2) !important;
+    box-shadow: var(--shadow-elevated), 0 0 40px rgba(46, 111, 64, 0.2) !important;
     animation: fadeInUp 0.2s ease-out !important;
     overflow: hidden !important;
 }
@@ -602,13 +706,13 @@ button[kind="secondary"]:hover {
     padding: 1rem 1.25rem !important;
     font-size: 1rem !important;
     transition: all 0.2s ease !important;
-    border-bottom: 1px solid rgba(168, 85, 247, 0.1) !important;
+    border-bottom: 1px solid rgba(46, 111, 64, 0.1) !important;
 }
 
 [role="option"]:hover,
 [data-baseweb="menu"] li:hover,
 [role="option"][aria-selected="true"] {
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(236, 72, 153, 0.1) 100%) !important;
+    background: linear-gradient(135deg, rgba(46, 111, 64, 0.2) 0%, rgba(104, 186, 127, 0.1) 100%) !important;
     color: var(--text-primary) !important;
 }
 
@@ -628,8 +732,8 @@ button[kind="secondary"]:hover {
 
 [data-testid="stFileUploader"]:hover {
     border-color: var(--accent-pink) !important;
-    background: linear-gradient(145deg, rgba(168, 85, 247, 0.1) 0%, var(--bg-elevated) 100%) !important;
-    box-shadow: 0 0 30px rgba(168, 85, 247, 0.2) !important;
+    background: linear-gradient(145deg, rgba(46, 111, 64, 0.1) 0%, var(--bg-elevated) 100%) !important;
+    box-shadow: 0 0 30px rgba(46, 111, 64, 0.2) !important;
 }
 
 [data-testid="stFileUploader"] section {
@@ -652,29 +756,29 @@ button[kind="secondary"]:hover {
     backdrop-filter: blur(10px) !important;
 }
 
-/* Info */
+/* Info - using forest green for consistency */
 div[data-baseweb="notification"][data-testid="stAlert-info"],
 .stInfo,
 [data-testid="stNotification"] {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%) !important;
+    background: linear-gradient(135deg, rgba(46, 111, 64, 0.15) 0%, rgba(46, 111, 64, 0.05) 100%) !important;
     border-left-color: var(--accent-blue) !important;
 }
 
 .stInfo p,
 .stInfo span,
 [data-testid="stNotification"] p {
-    color: #93c5fd !important;
+    color: #CFFFDC !important;
 }
 
-/* Success */
+/* Success - enhanced forest green */
 .stSuccess {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%) !important;
+    background: linear-gradient(135deg, rgba(104, 186, 127, 0.15) 0%, rgba(104, 186, 127, 0.05) 100%) !important;
     border-left-color: var(--accent-green) !important;
 }
 
 .stSuccess p,
 .stSuccess span {
-    color: #6ee7b7 !important;
+    color: #CFFFDC !important;
 }
 
 /* Warning */
@@ -712,9 +816,9 @@ div[data-baseweb="notification"][data-testid="stAlert-info"],
 }
 
 .streamlit-expanderHeader:hover {
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, var(--bg-elevated) 100%) !important;
+    background: linear-gradient(135deg, rgba(46, 111, 64, 0.1) 0%, var(--bg-elevated) 100%) !important;
     border-color: var(--accent-purple) !important;
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.15) !important;
+    box-shadow: 0 0 20px rgba(46, 111, 64, 0.15) !important;
 }
 
 .streamlit-expanderContent {
@@ -879,5 +983,5 @@ div[style*="background: #1a1f35"] {
 
 div[style*="background: #1a1f35"]:hover {
     transform: translateX(8px) !important;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(168, 85, 247, 0.2) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(46, 111, 64, 0.2) !important;
 }

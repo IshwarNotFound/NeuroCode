@@ -9,10 +9,16 @@ import time
 import random
 import html
 from pathlib import Path
+import os
 
-# Add parent directory to path for imports
-PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
+# Add parent directory to path for imports - FIXED PATH RESOLUTION
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+# Debug: Print path info
+# print(f"PROJECT_ROOT: {PROJECT_ROOT}")
+# print(f"sys.path[0]: {sys.path[0]}")
 
 # Import Vocabulary for pickle loading
 from src.vocabulary import Vocabulary
@@ -132,9 +138,9 @@ def render_step_indicator():
         step_num = i + 1
         with cols[i]:
             if step_num == st.session_state.step:
-                st.markdown(f"<div style='text-align: center; font-size: 1.2rem; color: #a78bfa; font-weight: bold;'>● {label}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: center; font-size: 1.2rem; color: #68BA7F; font-weight: bold;'>● {label}</div>", unsafe_allow_html=True)
             elif step_num < st.session_state.step:
-                st.markdown(f"<div style='text-align: center; font-size: 1.2rem; color: #10B981;'>✓ {label}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: center; font-size: 1.2rem; color: #68BA7F;'>✓ {label}</div>", unsafe_allow_html=True)
             else:
                 st.markdown(f"<div style='text-align: center; font-size: 1.2rem; color: #475569;'>○ {label}</div>", unsafe_allow_html=True)
     st.markdown("---")
@@ -145,21 +151,21 @@ def step_1_input():
     <div style="text-align: center; margin-bottom: 2.5rem; padding: 1rem 0;">
         <div style="font-size: 4.5rem; margin-bottom: 0.5rem;">🧠</div>
         <h1 style="font-size: 4rem; font-weight: 900; margin-bottom: 0.5rem;
-                   background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #06b6d4 100%);
+                   background: linear-gradient(135deg, #2E6F40 0%, #68BA7F 50%, #CFFFDC 100%);
                    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                   background-clip: text; text-shadow: 0 0 60px rgba(168, 85, 247, 0.5);">
+                   background-clip: text; text-shadow: 0 0 60px rgba(46, 111, 64, 0.5);">
             NeuroCode
         </h1>
         <p style="font-size: 1.4rem; color: #94a3b8; font-weight: 400; letter-spacing: 1px;">
             Neural Networks for Medical Coding
         </p>
         <div style="margin-top: 1rem; display: flex; justify-content: center; gap: 1.5rem;">
-            <span style="padding: 0.5rem 1rem; background: rgba(168, 85, 247, 0.15); border-radius: 50px; 
-                         font-size: 0.85rem; color: #a78bfa;">🚀 AI-Powered</span>
-            <span style="padding: 0.5rem 1rem; background: rgba(16, 185, 129, 0.15); border-radius: 50px; 
-                         font-size: 0.85rem; color: #10b981;">🔒 100% Secure</span>
-            <span style="padding: 0.5rem 1rem; background: rgba(59, 130, 246, 0.15); border-radius: 50px; 
-                         font-size: 0.85rem; color: #3b82f6;">⚡ Instant Results</span>
+            <span style="padding: 0.5rem 1rem; background: rgba(46, 111, 64, 0.15); border-radius: 50px; 
+                         font-size: 0.85rem; color: #68BA7F;">🚀 AI-Powered</span>
+            <span style="padding: 0.5rem 1rem; background: rgba(104, 186, 127, 0.15); border-radius: 50px; 
+                         font-size: 0.85rem; color: #68BA7F;">🔒 100% Secure</span>
+            <span style="padding: 0.5rem 1rem; background: rgba(207, 255, 220, 0.15); border-radius: 50px; 
+                         font-size: 0.85rem; color: #CFFFDC;">⚡ Instant Results</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -168,13 +174,13 @@ def step_1_input():
     
     # Define card HTML template
     card_html = """
-    <div style="background: linear-gradient(145deg, rgba(26, 35, 64, 0.8), rgba(21, 28, 47, 0.9));
-                border: 2px solid rgba(168, 85, 247, 0.3); border-radius: 20px;
+    <div style="background: linear-gradient(145deg, rgba(29, 46, 34, 0.8), rgba(23, 36, 25, 0.9));
+                border: 2px solid rgba(46, 111, 64, 0.3); border-radius: 20px;
                 padding: 2rem 1.5rem; text-align: center; min-height: 180px;
                 display: flex; flex-direction: column; justify-content: center;">
         <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">{icon}</div>
         <h3 style="font-size: 1.4rem; color: #ffffff; margin-bottom: 0.4rem;">{title}</h3>
-        <p style="font-size: 0.85rem; color: #94a3b8;">{desc}</p>
+        <p style="font-size: 0.85rem; color: #c8e6cf;">{desc}</p>
     </div>
     """
     
@@ -264,22 +270,22 @@ def step_2_preview():
     
     # Stats card
     st.markdown(f"""
-    <div style="background: linear-gradient(145deg, rgba(168, 85, 247, 0.15) 0%, rgba(236, 72, 153, 0.1) 100%); 
-                border: 2px solid rgba(168, 85, 247, 0.3); border-radius: 20px; padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    <div style="background: linear-gradient(145deg, rgba(46, 111, 64, 0.15) 0%, rgba(104, 186, 127, 0.1) 100%); 
+                border: 2px solid rgba(46, 111, 64, 0.3); border-radius: 20px; padding: 1.5rem 2rem; margin-bottom: 1.5rem;
                 display: flex; justify-content: space-around; align-items: center;">
         <div style="text-align: center;">
-            <div style="font-size: 1.8rem; font-weight: 900; color: #a855f7;">{source}</div>
-            <div style="font-size: 0.85rem; color: #94a3b8;">Source</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #2E6F40;">{source}</div>
+            <div style="font-size: 0.85rem; color: #c8e6cf;">Source</div>
         </div>
-        <div style="width: 1px; height: 40px; background: rgba(168, 85, 247, 0.3);"></div>
+        <div style="width: 1px; height: 40px; background: rgba(46, 111, 64, 0.3);"></div>
         <div style="text-align: center;">
-            <div style="font-size: 1.8rem; font-weight: 900; color: #ec4899;">{text_len:,}</div>
-            <div style="font-size: 0.85rem; color: #94a3b8;">Characters</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #68BA7F;">{text_len:,}</div>
+            <div style="font-size: 0.85rem; color: #c8e6cf;">Characters</div>
         </div>
-        <div style="width: 1px; height: 40px; background: rgba(236, 72, 153, 0.3);"></div>
+        <div style="width: 1px; height: 40px; background: rgba(104, 186, 127, 0.3);"></div>
         <div style="text-align: center;">
-            <div style="font-size: 1.8rem; font-weight: 900; color: #10b981;">READY</div>
-            <div style="font-size: 0.85rem; color: #94a3b8;">Status</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #CFFFDC;">READY</div>
+            <div style="font-size: 0.85rem; color: #c8e6cf;">Status</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -300,10 +306,10 @@ def step_2_preview():
 
     # Show full document directly (no expander, no duplicate)
     st.markdown(f"""
-    <div style="background: rgba(21, 28, 47, 0.8); border: 1px solid rgba(168, 85, 247, 0.2); 
+    <div style="background: rgba(23, 36, 25, 0.8); border: 1px solid rgba(46, 111, 64, 0.2); 
                 border-radius: 16px; padding: 1.25rem; margin-bottom: 1.5rem;">
         <div style="font-size: 1rem; font-weight: 600; color: #ffffff; margin-bottom: 0.75rem;">Document Content</div>
-        <div style="background: rgba(10, 14, 26, 0.8); border-radius: 12px; padding: 1.25rem; 
+        <div style="background: rgba(13, 26, 18, 0.8); border-radius: 12px; padding: 1.25rem; 
                     max-height: 300px; overflow-y: auto;">
             <p style="color: #e2e8f0; font-size: 0.95rem; line-height: 1.7; margin: 0; white-space: pre-wrap;">
 {st.session_state.extracted_text}
@@ -353,7 +359,7 @@ def step_3_results():
     conf_pct = int(primary['confidence'] * 100)
     
     st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+    <div style="background: linear-gradient(135deg, #2E6F40 0%, #68BA7F 100%); 
                 border-radius: 20px; padding: 2rem; margin-bottom: 1.5rem; text-align: center;">
         <div style="font-size: 0.85rem; color: rgba(255,255,255,0.7); text-transform: uppercase; 
                     font-weight: 700; letter-spacing: 2px; margin-bottom: 0.75rem;">Primary Diagnosis</div>
@@ -376,20 +382,20 @@ def step_3_results():
     
     st.markdown(f"""
     <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-        <div style="flex: 1; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); 
+        <div style="flex: 1; background: rgba(46, 111, 64, 0.1); border: 1px solid rgba(46, 111, 64, 0.3); 
                     border-radius: 12px; padding: 1rem; text-align: center;">
-            <div style="font-size: 2rem; font-weight: 800; color: #10b981;">{total_codes}</div>
-            <div style="font-size: 0.8rem; color: #94a3b8;">Total Codes</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #2E6F40;">{total_codes}</div>
+            <div style="font-size: 0.8rem; color: #c8e6cf;">Total Codes</div>
         </div>
-        <div style="flex: 1; background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); 
+        <div style="flex: 1; background: rgba(104, 186, 127, 0.1); border: 1px solid rgba(104, 186, 127, 0.3); 
                     border-radius: 12px; padding: 1rem; text-align: center;">
-            <div style="font-size: 2rem; font-weight: 800; color: #a855f7;">{high_conf}</div>
-            <div style="font-size: 0.8rem; color: #94a3b8;">High Confidence</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #68BA7F;">{high_conf}</div>
+            <div style="font-size: 0.8rem; color: #c8e6cf;">High Confidence</div>
         </div>
-        <div style="flex: 1; background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.3); 
+        <div style="flex: 1; background: rgba(207, 255, 220, 0.1); border: 1px solid rgba(207, 255, 220, 0.3); 
                     border-radius: 12px; padding: 1rem; text-align: center;">
-            <div style="font-size: 2rem; font-weight: 800; color: #ec4899;">{conf_pct}%</div>
-            <div style="font-size: 0.8rem; color: #94a3b8;">Best Score</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #CFFFDC;">{conf_pct}%</div>
+            <div style="font-size: 0.8rem; color: #c8e6cf;">Best Score</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -397,7 +403,7 @@ def step_3_results():
     # Section header
     st.markdown("""
     <div style="font-size: 1.1rem; font-weight: 700; color: #ffffff; margin-bottom: 0.75rem; 
-                padding-bottom: 0.5rem; border-bottom: 1px solid rgba(168, 85, 247, 0.3);">
+                padding-bottom: 0.5rem; border-bottom: 1px solid rgba(46, 111, 64, 0.3);">
         All Predicted Codes
     </div>
     """, unsafe_allow_html=True)
@@ -435,9 +441,9 @@ def step_3_results():
     # Code list for copying
     code_list = ", ".join([p['code'] for p in preds])
     st.markdown(f"""
-    <div style="background: rgba(10, 14, 26, 0.8); border: 1px solid rgba(168, 85, 247, 0.2); 
+    <div style="background: rgba(13, 26, 18, 0.8); border: 1px solid rgba(46, 111, 64, 0.2); 
                 border-radius: 10px; padding: 0.75rem 1rem; margin-top: 1rem;
-                font-family: monospace; font-size: 0.9rem; color: #94a3b8;">
+                font-family: monospace; font-size: 0.9rem; color: #c8e6cf;">
         {code_list}
     </div>
     """, unsafe_allow_html=True)
