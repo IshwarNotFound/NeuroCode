@@ -98,9 +98,12 @@ class InputValidator:
     def sanitize_text(cls, text: str) -> str:
         """
         Sanitize text input by:
-        1. HTML encoding special characters
-        2. Removing null bytes
-        3. Limiting length
+        1. Removing null bytes
+        2. Limiting length
+        3. Removing control characters
+        
+        NOTE: We do NOT HTML-escape here because this text goes to the ML model.
+        HTML escaping should only be done when displaying in the UI.
         """
         if not text:
             return ""
@@ -111,8 +114,8 @@ class InputValidator:
         # Remove null bytes
         text = text.replace('\x00', '')
         
-        # HTML encode to prevent XSS when displaying
-        text = html.escape(text)
+        # Remove control characters (except newlines and tabs)
+        text = ''.join(char for char in text if char.isprintable() or char in '\n\r\t')
         
         return text
     

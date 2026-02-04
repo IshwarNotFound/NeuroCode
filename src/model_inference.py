@@ -82,6 +82,7 @@ class ICD10Predictor:
         self.label_encoder = None
         self.word_to_idx = None
         self.idx_to_code = None
+        self.code_to_idx = None  # Reverse mapping
         self.max_seq_length = 2000
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self._load_model()
@@ -117,8 +118,9 @@ class ICD10Predictor:
                 self.label_encoder = loaded_le
                 self.classes_ = self.label_encoder.classes_
             
-            # Build index to code mapping
+            # Build index to code mapping (and reverse)
             self.idx_to_code = {idx: code for idx, code in enumerate(self.classes_)}
+            self.code_to_idx = {code: idx for idx, code in enumerate(self.classes_)}
             
             # Load preprocessing summary
             preproc_path = DATA_DIR / "preprocessing_summary.json"
@@ -166,7 +168,7 @@ class ICD10Predictor:
         # Basic medical abbreviation expansion (simplified)
         abbrev_map = {
             'pt': 'patient', 'dx': 'diagnosis', 'htn': 'hypertension',
-            'dm': 'diabetes', 'ckd': 'chronic kidney disease',
+            'ckd': 'chronic kidney disease',
             'copd': 'chronic obstructive pulmonary disease',
             'chf': 'congestive heart failure', 'cva': 'cerebrovascular accident'
         }
@@ -186,6 +188,116 @@ class ICD10Predictor:
             indices = indices[:self.max_seq_length]
         
         return torch.tensor(indices, dtype=torch.long).unsqueeze(0)  # Add batch dimension
+    
+    def _find_whole_word(self, text: str, word: str) -> bool:
+        """
+        Check if a whole word exists in text (not as part of another word).
+        Uses word boundary matching to prevent 'dm' matching 'admission'.
+        """
+        # Use regex word boundaries for accurate matching
+        pattern = r'\b' + re.escape(word) + r'\b'
+        return bool(re.search(pattern, text, re.IGNORECASE))
+    
+    def _apply_keyword_rules(self, text: str, probs: np.ndarray) -> np.ndarray:
+        """
+        Apply rule-based keyword boosting to improve prediction accuracy.
+        Uses whole-word matching to avoid false positives.
+        """
+        text_lower = text.lower()
+        
+        # Keyword rules: {ICD_code: [(keyword, is_phrase, boost_amount), ...]}
+        # is_phrase=True means search as substring, False means whole word only
+        keyword_rules = {
+            # Falls and mobility
+            'Z91.81': [('fall', False, 0.8), ('falling', False, 0.8), ('fell', False, 0.8), ('history of fall', True, 0.9)],
+            'R26.81': [('unsteadiness', False, 0.7), ('unsteady gait', True, 0.8)],
+            'R26.2': [('difficulty walking', True, 0.8), ('difficulty in walking', True, 0.8), ('gait disturbance', True, 0.7)],
+            'M62.81': [('muscle weakness', True, 0.8), ('muscular weakness', True, 0.8), ('generalized weakness', True, 0.7)],
+            
+            # Metabolic/Endocrine
+            'E78.5': [('hyperlipidemia', False, 0.9), ('cholesterol', False, 0.6), ('elevated lipid', True, 0.7)],
+            'E03.9': [('hypothyroidism', False, 0.9), ('thyroid', False, 0.5), ('tsh elevated', True, 0.8)],
+            'E11.9': [('type 2 diabetes', True, 0.9), ('diabetes mellitus', True, 0.8), ('diabetic', False, 0.6)],
+            'E11.42': [('diabetic neuropathy', True, 0.9), ('peripheral neuropathy', True, 0.7)],
+            
+            # Gout
+            'M10.33': [('gout', False, 0.9), ('podagra', False, 0.9), ('uric acid', True, 0.6)],
+            
+            # Kidney
+            'I13.0': [('hypertensive chronic kidney', True, 0.9), ('hypertensive ckd', True, 0.9)],
+            'N18.2': [('ckd stage 2', True, 0.9), ('chronic kidney disease stage 2', True, 0.9)],
+            'N18.3': [('ckd stage 3', True, 0.9), ('chronic kidney disease stage 3', True, 0.9)],
+            'N18.4': [('ckd stage 4', True, 0.9), ('chronic kidney disease stage 4', True, 0.9)],
+            
+            # Musculoskeletal
+            'M17.00': [('osteoarthritis', False, 0.7), ('knee osteoarthritis', True, 0.9), ('bilateral knee', True, 0.7)],
+            'M81.0': [('osteoporosis', False, 0.8), ('bone loss', True, 0.6)],
+            'M54.5': [('low back pain', True, 0.9), ('lumbar pain', True, 0.8), ('back pain', True, 0.6)],
+            
+            # Gastrointestinal
+            'K21.9': [('gerd', False, 0.9), ('gastroesophageal reflux', True, 0.9), ('heartburn', False, 0.7), ('reflux', False, 0.5)],
+            
+            # Cardiovascular
+            'I25.10': [('coronary artery disease', True, 0.9), ('cad', False, 0.8), ('coronary atherosclerosis', True, 0.9)],
+            'I10': [('hypertension', False, 0.7), ('high blood pressure', True, 0.8), ('elevated blood pressure', True, 0.7)],
+            'I50.32': [('heart failure', True, 0.8), ('congestive heart failure', True, 0.9), ('chf', False, 0.8)],
+            'I48.0': [('atrial fibrillation', True, 0.9), ('afib', False, 0.9), ('a-fib', False, 0.9)],
+            'I70.0': [('atherosclerosis', False, 0.8), ('aortic atherosclerosis', True, 0.9)],
+            
+            # Respiratory
+            'J44.9': [('copd', False, 0.9), ('chronic obstructive pulmonary', True, 0.9)],
+            'G47.33': [('sleep apnea', True, 0.9), ('obstructive sleep apnea', True, 0.95), ('snoring', False, 0.5)],
+            
+            # Neurological
+            'G30.1': [('alzheimer', False, 0.9), ('alzheimers', False, 0.9)],
+            'G89.29': [('chronic pain', True, 0.7), ('pain syndrome', True, 0.6)],
+            
+            # Mental Health
+            'F32.A': [('depression', False, 0.6), ('major depressive', True, 0.8), ('depressive disorder', True, 0.8)],
+            'F41.1': [('anxiety', False, 0.6), ('generalized anxiety', True, 0.8), ('anxiety disorder', True, 0.8)],
+            
+            # Urinary
+            'N39.0': [('urinary tract infection', True, 0.9), ('uti', False, 0.8)],
+            'N40.0': [('benign prostatic hyperplasia', True, 0.9), ('bph', False, 0.8), ('prostate', False, 0.5)],
+            
+            # Other
+            'E55.9': [('vitamin d deficiency', True, 0.9)],
+        }
+        
+        # Track which codes were boosted
+        boosted_codes = set()
+        
+        for code, rules in keyword_rules.items():
+            # Find the index for this code
+            code_idx = None
+            for idx, c in self.idx_to_code.items():
+                if c.startswith(code):
+                    code_idx = idx
+                    break
+            
+            if code_idx is None:
+                continue
+            
+            # Check each keyword rule
+            for rule in rules:
+                keyword = rule[0]
+                is_phrase = rule[1]
+                boost = rule[2]
+                
+                # Check if keyword is present
+                if is_phrase:
+                    # Substring search for phrases
+                    if keyword in text_lower:
+                        # Apply boost (additive, not overriding)
+                        probs[code_idx] = min(1.0, probs[code_idx] + boost)
+                        boosted_codes.add(code)
+                else:
+                    # Whole word search for single words
+                    if self._find_whole_word(text_lower, keyword):
+                        probs[code_idx] = min(1.0, probs[code_idx] + boost)
+                        boosted_codes.add(code)
+        
+        return probs
     
     def predict(self, text: str, top_k: int = 10, threshold: float = 0.1) -> List[Dict]:
         """
@@ -213,86 +325,11 @@ class ICD10Predictor:
         # Get probabilities
         probs = predictions.cpu().numpy()[0]
         
-        # --- HYBRID RULE-BASED BOOSTING ---
-        # Boost confidence for clear keyword matches to ensure robustness
-        # This helps when the model is uncertain or text is short
-        text_lower = text.lower()
-        
-        keyword_rules = {
-            'Z91.81': ['fall', 'falling', 'fell'],
-            'E78.5': ['hyperlipidemia', 'cholesterol', 'lipid'],
-            'M10.33': ['gout', 'podagra'],
-            'E03.9': ['hypothyroidism', 'thyroid', 'tsh'],
-            'I13.0': ['hypertensive', 'ckd', 'kidney'],
-            'M17.00': ['osteoarthritis', 'knee'],
-            'K21.9': ['gerd', 'reflux', 'heartburn'],
-            'I25.10': ['coronary', 'artery', 'cad', 'angina'],
-            'I10': ['hypertension', 'pressure'],
-            'N18.2': ['ckd', 'kidney', 'renal'],
-            'N18.3': ['ckd', 'kidney', 'renal'],
-            'G89.29': ['pain', 'ache'],
-            'I50.32': ['heart failure', 'chf'],
-            'I48.0': ['atrial fibrillation', 'afib'],
-            'E11.9': ['diabetes', 'dm'],
-            'E11.42': ['neuropathy', 'numbness'],
-            'G30.1': ['alzheimer', 'dementia', 'memory'],
-            'J44.9': ['copd', 'obstructive pulmonary'],
-            'I70.0': ['atherosclerosis', 'plaque'],
-            'M81.0': ['osteoporosis', 'bone'],
-            'F32.A': ['depression', 'depressive', 'sad'],
-            'F41.1': ['anxiety', 'anxious', 'worry'],
-            'G47.33': ['apnea', 'snoring'],
-            'N39.0': ['uti', 'urinary', 'infection'],
-            'N40.0': ['bph', 'prostatic', 'prostate'],
-            'M54.5': ['back pain', 'lumbar'],
-            'R26.81': ['unsteadiness', 'walking'],
-            'R26.2': ['walking', 'gait']
-        }
-        
-        # Create a boost vector
-        boost_vector = np.zeros_like(probs)
-        
-        # Penalize the "sticky" code M62.81 if it's dominating without evidence
-        sticky_code = 'M62.81'
-        sticky_idx = -1
-        for idx, c in self.idx_to_code.items():
-            if c.startswith(sticky_code):
-                sticky_idx = idx
-                break
-        
-        if sticky_idx != -1:
-            # Check if "weakness" is actually in the text
-            if 'weakness' not in text_lower and 'muscle' not in text_lower:
-                probs[sticky_idx] *= 0.5  # Penalize by 50%
-        
-        matched_rule = False
-        for code, keywords in keyword_rules.items():
-            # Find index for this code
-            code_idx = -1
-            for idx, c in self.idx_to_code.items():
-                if c.startswith(code): # Match base code
-                    code_idx = idx
-                    break
-            
-            if code_idx != -1:
-                # Check for keywords
-                for kw in keywords:
-                    if kw in text_lower:
-                        # Apply STRONG boost (Override model)
-                        probs[code_idx] = 1.0 # Force certainty
-                        matched_rule = True
-                        # print(f"DEBUG: Boosted {code} based on '{kw}'")
-                        break
-                        
-        # If a rule matched, suppress others to ensure clarity
-        # (Optional: reduces clutter from low-confidence noise)
-        if matched_rule:
-           pass
+        # Apply keyword-based boosting for robustness
+        probs = self._apply_keyword_rules(text, probs)
         
         # Re-normalize/Clip (sigmoid output is 0-1, boosting can go >1)
         probs = np.clip(probs, 0.0, 1.0)
-        
-        # ----------------------------------
         
         # Get top predictions above threshold
         top_indices = np.argsort(probs)[::-1]
