@@ -10,6 +10,9 @@ import random
 import html
 from pathlib import Path
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Add parent directory to path for imports - FIXED PATH RESOLUTION
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -158,7 +161,8 @@ def run_analysis(text):
         
     except Exception as e:
         terminal.empty()
-        st.error(f"Analysis failed: {str(e)}")
+        logger.exception("Analysis failed during model inference")
+        st.error("Analysis failed. Please try again or use a demo case.")
         return None
 
 # ==================== WIZARD ====================
@@ -221,10 +225,12 @@ def step_1_input():
         """, unsafe_allow_html=True)
         uploaded_file = st.file_uploader("", type=['pdf'], label_visibility="collapsed", key="pdf_upload")
         if uploaded_file:
-            if uploaded_file.size > 4 * 1024 * 1024:
-                st.error("File too large. Max 4MB allowed.")
+            is_valid, file_error = InputValidator.validate_file(uploaded_file)
+            if not is_valid:
+                st.error(f"⚠️ {file_error}")
             else:
                 with st.spinner("Extracting text..."):
+                    tmp_path = None
                     try:
                         from src.pdf_extractor import HybridPDFExtractor
                         import tempfile
@@ -239,9 +245,13 @@ def step_1_input():
                             next_step()
                             st.rerun()
                         else:
-                            st.error(f"Extraction failed: {result.error_message}")
+                            st.error("PDF extraction failed. Please try a different file.")
                     except Exception as e:
-                        st.error(f"Error: {str(e)}")
+                        logger.exception("PDF extraction error")
+                        st.error("An error occurred processing the PDF. Please try again.")
+                    finally:
+                        if tmp_path and os.path.exists(tmp_path):
+                            os.unlink(tmp_path)
 
     with col_demo:
         st.markdown("""
@@ -304,7 +314,7 @@ def step_2_preview():
         st.markdown(f"""
         <div style="background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; animation: smoothRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
             <p style="color: #a1a1aa !important; font-size: 0.95rem; line-height: 1.7; max-height: 350px; overflow-y: auto; white-space: pre-wrap; margin: 0;">
-{st.session_state.extracted_text}
+{html.escape(st.session_state.extracted_text)}
             </p>
         </div>
         """, unsafe_allow_html=True)
@@ -360,10 +370,10 @@ def step_3_results():
     <div style="border: 1px solid #222; border-radius: 14px; padding: 3rem; margin-bottom: 2rem; text-align: center; animation: smoothRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
         <div style="font-size: 0.75rem; color: #555 !important; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1rem;">Primary Diagnosis</div>
         <div style="font-size: 4.5rem; font-weight: 800; color: #ffffff !important; line-height: 1; margin-bottom: 0.5rem; letter-spacing: -0.04em;">
-            {primary['code']}
+            {html.escape(primary['code'])}
         </div>
         <div style="font-size: 1.1rem; color: #888 !important; margin-bottom: 1.5rem;">
-            {primary['description']}
+            {html.escape(primary['description'])}
         </div>
         <div style="display: inline-block; border: 1px solid #333; border-radius: 50px; padding: 0.3rem 1.2rem;">
             <span style="font-size: 0.85rem; color: #aaa !important;">Confidence: </span>
@@ -385,8 +395,8 @@ def step_3_results():
             code_rows.append(f"""
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid #111; animation: smoothRise {0.8 + (i*0.08)}s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
                 <div style="display: flex; align-items: center; gap: 1.5rem;">
-                    <div style="font-size: 1.15rem; font-weight: 700; color: #fff !important;">{code['code']}</div>
-                    <div style="font-size: 0.9rem; color: #777 !important;">{code['description']}</div>
+                    <div style="font-size: 1.15rem; font-weight: 700; color: #fff !important;">{html.escape(code['code'])}</div>
+                    <div style="font-size: 0.9rem; color: #777 !important;">{html.escape(code['description'])}</div>
                 </div>
                 <div style="font-size: 0.85rem; font-family: monospace; color: rgba(255,255,255,{opacity}) !important;">{conf_pct}%</div>
             </div>
@@ -398,7 +408,7 @@ def step_3_results():
     code_list = ", ".join([p['code'] for p in preds])
     st.markdown(f"""
     <div style="background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 8px; padding: 0.75rem 1rem; margin-top: 1.5rem; font-family: monospace; font-size: 0.85rem; color: #666 !important;">
-        {code_list}
+        {html.escape(code_list)}
     </div>
     """, unsafe_allow_html=True)
 

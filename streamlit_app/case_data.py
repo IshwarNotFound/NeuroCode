@@ -1,7 +1,14 @@
 """
 Sample Discharge Summaries for ICD-10 Prediction
 Based on actual code frequencies from training data
+
+DISCLAIMER: All patient cases below are SYNTHETIC and do not represent
+real patients. No Protected Health Information (PHI) is contained herein.
+These cases are generated for demonstration and testing purposes only.
 """
+
+# Safety flag for compliance checks
+SYNTHETIC_DATA = True
 
 # Top 10 most frequent codes from training:
 # Z91.81 (Fall history) - 368

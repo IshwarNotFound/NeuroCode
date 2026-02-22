@@ -43,6 +43,7 @@ Thumbs.db
 # Project specific
 *.log
 test_model.py
+file_hashes.json
 
 # Large files (model weights - keep in git-lfs or download separately)
 # Downloaded files/ICD10_Project/models/*.pt

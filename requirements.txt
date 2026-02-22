@@ -1,47 +1,47 @@
 # CNN-Based ICD-10 Auto-Coding System - Dependencies
 # Optimized for Google Colab Free Tier
+# Last security review: 2026-02-22
 
 # ============================================
 # Core ML/DL
 # ============================================
-tensorflow==2.13.0
-keras==2.13.0
-numpy==1.24.0
-pandas==2.0.0
-scikit-learn==1.3.0
+tensorflow>=2.16.1
+numpy>=1.26.4
+pandas>=2.2.0
+scikit-learn>=1.4.0
 
 # ============================================
 # NLP
 # ============================================
-nltk==3.8.0
-gensim==4.3.0
+nltk>=3.9.0
+gensim>=4.3.2
 
 # ============================================
 # PDF Processing
 # ============================================
-pdfplumber==0.9.0
-PyPDF2==3.0.0
-pdf2image==1.16.0
-pytesseract==0.3.10
+pdfplumber>=0.11.0
+pypdf>=4.3.0       # Replaces deprecated PyPDF2 (CVE-2023-36464)
+pdf2image>=1.17.0
+pytesseract>=0.3.10
 
 # ============================================
 # Multi-label Stratification
 # ============================================
-iterative-stratification==0.1.7
+iterative-stratification>=0.1.7
 
 # ============================================
 # Visualization
 # ============================================
-matplotlib==3.7.0
-seaborn==0.12.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
 
 # ============================================
 # Utilities
 # ============================================
-tqdm==4.65.0
-joblib==1.3.0
-pyyaml==6.0
-openpyxl==3.1.0
+tqdm>=4.66.0
+joblib>=1.3.2
+pyyaml>=6.0.1
+openpyxl>=3.1.2
 
 # ============================================
 # Note: The following are installed via apt in Colab
