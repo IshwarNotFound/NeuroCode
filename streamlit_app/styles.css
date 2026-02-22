@@ -249,11 +249,12 @@ button[kind="secondary"]:hover {
     background: transparent;
     border: 1px solid var(--void-border);
     border-radius: 12px;
-    padding: 1.25rem 1rem;
+    padding: 0.9rem 1rem;
     text-align: center;
     color: var(--text-secondary);
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     animation: smoothRise 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    margin-bottom: 0.25rem;
 }
 
 .ghost-card:hover {
@@ -264,8 +265,8 @@ button[kind="secondary"]:hover {
 }
 
 .ghost-icon {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.3rem;
+    margin-bottom: 0.3rem;
     display: block;
 }
 
@@ -277,7 +278,7 @@ button[kind="secondary"]:hover {
     color: var(--text-muted);
     font-size: 0.85rem;
     letter-spacing: 0.03em;
-    margin: 2rem 0;
+    margin: 1.25rem 0;
     animation: smoothRise 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -377,8 +378,9 @@ button[kind="secondary"]:hover {
     background: var(--void-surface) !important;
     border: 1px dashed var(--void-border) !important;
     border-radius: 12px !important;
-    padding: 1.25rem !important;
+    padding: 1rem !important;
     transition: all 0.3s ease !important;
+    margin-top: 0 !important;
 }
 
 [data-testid="stFileUploader"]:hover {
@@ -397,8 +399,10 @@ button[kind="secondary"]:hover {
     border-radius: 8px !important;
 }
 
-[data-testid="stFileUploader"] small {
-    color: var(--text-muted) !important;
+/* Hide Streamlit's default '200MB' limit text — we show our own in the ghost card */
+[data-testid="stFileUploader"] small,
+[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzoneInstructions"] div:last-child {
+    display: none !important;
 }
 
 /* ========== 11. ALERTS ========== */
