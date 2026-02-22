@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚫ NeuroCode
+#  NeuroCode
 
 **Neural Networks for Medical Coding**
 
