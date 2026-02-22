@@ -252,10 +252,10 @@ def step_1_input():
         </div>
         """, unsafe_allow_html=True)
         case_titles = get_case_titles()
-        options = ["-- Select a case --"] + case_titles
+        options = ["Choose a clinical case"] + case_titles
         selected = st.selectbox("", options, index=0, label_visibility="collapsed", key="case_sel")
         if st.button("Load Case", key="btn_demo", use_container_width=True):
-            if selected != "-- Select a case --":
+            if selected != "Choose a clinical case":
                 selected_idx = options.index(selected) - 1
                 case_data = get_case(selected_idx + 1)
                 st.session_state.extracted_text = case_data['text']
