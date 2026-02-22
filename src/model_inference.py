@@ -13,11 +13,28 @@ from pathlib import Path
 from typing import List, Dict, Tuple
 import re
 from src.vocabulary import Vocabulary
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Get the paths to model files
-PROJECT_ROOT = Path(__file__).parent.parent
+# Use resolve() for absolute path and better robustness
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# Define possible data locations (prioritize existing structure)
 MODEL_DIR = PROJECT_ROOT / "Downloaded files" / "ICD10_Project" / "models"
 DATA_DIR = PROJECT_ROOT / "Downloaded files" / "ICD10_Project" / "data" / "train_test_split"
+
+# If hardcoded paths don't exist, try falling back to standard project structure
+if not MODEL_DIR.exists():
+    MODEL_DIR = PROJECT_ROOT / "models"
+if not DATA_DIR.exists():
+    DATA_DIR = PROJECT_ROOT / "data" / "train_test_split"
 
 # Load ICD-10 descriptions
 try:
@@ -90,6 +107,12 @@ class ICD10Predictor:
     def _load_model(self):
         """Load model, vocabulary, and label encoder"""
         try:
+            # Check if directories exist
+            if not DATA_DIR.exists():
+                raise FileNotFoundError(f"Data directory not found at {DATA_DIR}")
+            if not MODEL_DIR.exists():
+                raise FileNotFoundError(f"Model directory not found at {MODEL_DIR}")
+
             # Load vocabulary
             vocab_path = DATA_DIR / "vocabulary.pkl"
             with open(vocab_path, 'rb') as f:
@@ -140,18 +163,21 @@ class ICD10Predictor:
             
             # Load model weights (weights_only=False needed for PyTorch 2.6+)
             model_path = MODEL_DIR / "icd10_cnn_latest.pt"
+            if not model_path.exists():
+                raise FileNotFoundError(f"Model file not found at {model_path}")
+
             checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.model.to(self.device)
             self.model.eval()
             
-            print(f"✓ Model loaded successfully!")
-            print(f"  Vocabulary size: {vocab_size}")
-            print(f"  Number of classes: {n_classes}")
-            print(f"  Device: {self.device}")
+            logger.info(f"Model loaded successfully!")
+            logger.info(f"Vocabulary size: {vocab_size}")
+            logger.info(f"Number of classes: {n_classes}")
+            logger.info(f"Device: {self.device}")
             
         except Exception as e:
-            print(f"Error loading model: {e}")
+            logger.error(f"Error loading model: {e}")
             raise
     
     def preprocess_text(self, text: str) -> List[str]:
@@ -198,10 +224,30 @@ class ICD10Predictor:
         pattern = r'\b' + re.escape(word) + r'\b'
         return bool(re.search(pattern, text, re.IGNORECASE))
     
+    def _check_negation(self, text: str, match_index: int) -> bool:
+        """
+        Check for negation terms preceding the match.
+        Looks back approx 40 characters (approx 5-6 words).
+        """
+        lookback_chars = 40
+        start = max(0, match_index - lookback_chars)
+        preceding_text = text[start:match_index]
+
+        # Common medical negation terms
+        negation_terms = [
+            r'\bno\b', r'\bnot\b', r'\bdenies\b', r'\bdenied\b',
+            r'\bnegative for\b', r'\bwithout\b', r'\bfree of\b'
+        ]
+
+        for term in negation_terms:
+            if re.search(term, preceding_text, re.IGNORECASE):
+                return True
+        return False
+
     def _apply_keyword_rules(self, text: str, probs: np.ndarray) -> np.ndarray:
         """
         Apply rule-based keyword boosting to improve prediction accuracy.
-        Uses whole-word matching to avoid false positives.
+        Uses whole-word matching and negation detection.
         """
         text_lower = text.lower()
         
@@ -268,14 +314,13 @@ class ICD10Predictor:
         boosted_codes = set()
         
         for code, rules in keyword_rules.items():
-            # Find the index for this code
-            code_idx = None
+            # Find the indices for this code (or codes starting with it)
+            matching_indices = []
             for idx, c in self.idx_to_code.items():
                 if c.startswith(code):
-                    code_idx = idx
-                    break
+                    matching_indices.append(idx)
             
-            if code_idx is None:
+            if not matching_indices:
                 continue
             
             # Check each keyword rule
@@ -284,16 +329,28 @@ class ICD10Predictor:
                 is_phrase = rule[1]
                 boost = rule[2]
                 
-                # Check if keyword is present
+                # Find matching locations
+                matches = []
                 if is_phrase:
-                    # Substring search for phrases
-                    if keyword in text_lower:
-                        # Apply boost (additive, not overriding)
-                        probs[code_idx] = min(1.0, probs[code_idx] + boost)
-                        boosted_codes.add(code)
+                    # Find all occurrences
+                    for m in re.finditer(re.escape(keyword), text_lower):
+                        matches.append(m.start())
                 else:
-                    # Whole word search for single words
-                    if self._find_whole_word(text_lower, keyword):
+                    # Whole word search
+                    pattern = r'\b' + re.escape(keyword) + r'\b'
+                    for m in re.finditer(pattern, text_lower):
+                        matches.append(m.start())
+
+                # Check for negation
+                matched = False
+                for match_idx in matches:
+                    if not self._check_negation(text_lower, match_idx):
+                        matched = True
+                        break # Found at least one non-negated occurrence
+
+                if matched:
+                    # Apply boost to ALL matching codes
+                    for code_idx in matching_indices:
                         probs[code_idx] = min(1.0, probs[code_idx] + boost)
                         boosted_codes.add(code)
         
