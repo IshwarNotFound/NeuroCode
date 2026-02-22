@@ -146,66 +146,59 @@ def render_step_indicator():
     st.markdown("---")
 
 def step_1_input():
-    # Hero Section - NeuroCode Branding (COMPACT VERSION - NO BRAIN)
+    # ===== CLEAN HERO — Title + Tagline only =====
     st.markdown("""
-    <div style="text-align: center; margin-bottom: 1.5rem; padding: 0.5rem 0;">
-        <h1 style="font-size: 3.5rem; font-weight: 900; margin-bottom: 0.3rem;
-                   background: linear-gradient(135deg, #2E6F40 0%, #68BA7F 50%, #CFFFDC 100%);
-                   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                   background-clip: text; text-shadow: 0 0 60px rgba(46, 111, 64, 0.5);">
-            ✨ NeuroCode
-        </h1>
-        <p style="font-size: 1.2rem; color: #c8e6cf; font-weight: 500; letter-spacing: 1px; margin-bottom: 0.5rem;">
-            Neural Networks for Medical Coding
-        </p>
-        <div style="display: flex; justify-content: center; gap: 1rem;">
-            <span style="padding: 0.4rem 0.8rem; background: rgba(46, 111, 64, 0.2); border-radius: 50px; 
-                         font-size: 0.75rem; color: #68BA7F;">🚀 AI-Powered</span>
-            <span style="padding: 0.4rem 0.8rem; background: rgba(104, 186, 127, 0.2); border-radius: 50px; 
-                         font-size: 0.75rem; color: #68BA7F;">🔒 100% Secure</span>
-            <span style="padding: 0.4rem 0.8rem; background: rgba(207, 255, 220, 0.2); border-radius: 50px; 
-                         font-size: 0.75rem; color: #CFFFDC;">⚡ Instant Results</span>
-        </div>
+    <div class="hero-wrapper">
+        <div class="hero-glow"></div>
+        <h1 class="hero-title">NeuroCode</h1>
+        <p class="hero-subtitle">AI-Powered ICD-10 Medical Coding</p>
+        <p class="hero-tagline">Paste a clinical note and get instant diagnosis codes</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ===== PRIMARY ACTION — Text Input (the one thing to do) =====
+    st.markdown("""
+    <div class="primary-card">
+        <div class="primary-card-label">📋 Paste your clinical text</div>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<p style='text-align: center; font-size: 1rem; color: #7a9a82; margin-bottom: 1rem;'>Choose your input method</p>", unsafe_allow_html=True)
+    text_input = st.text_area("", height=160, placeholder="Paste your discharge summary, clinical note, or medical report here...\n\nExample: Patient is a 65-year-old male admitted with acute chest pain radiating to the left arm. History of hypertension and type 2 diabetes mellitus...", label_visibility="collapsed", key="text_input_field")
     
-    # Define card HTML template - COMPACT
-    card_html = """
-    <div style="background: linear-gradient(145deg, rgba(29, 46, 34, 0.8), rgba(23, 36, 25, 0.9));
-                border: 2px solid rgba(46, 111, 64, 0.3); border-radius: 16px;
-                padding: 1.25rem 1rem; text-align: center; min-height: 130px;
-                display: flex; flex-direction: column; justify-content: center;">
-        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">{icon}</div>
-        <h3 style="font-size: 1.2rem; color: #ffffff; margin-bottom: 0.25rem;">{title}</h3>
-        <p style="font-size: 0.75rem; color: #c8e6cf;">{desc}</p>
+    if st.button("✨  ANALYZE WITH AI", key="btn_text", type="primary", use_container_width=True):
+        if len(text_input) > 10:
+            st.session_state.extracted_text = text_input
+            st.session_state.source_type = 'text'
+            next_step()
+            st.rerun()
+        else:
+            st.warning("Please enter at least a few sentences of clinical text")
+
+    # ===== OR DIVIDER =====
+    st.markdown("""
+    <div class="or-divider">
+        <div class="or-line"></div>
+        <span class="or-text">or</span>
+        <div class="or-line"></div>
     </div>
-    """
-    
-    # Render all 3 cards at once
-    col1, col2, col3 = st.columns(3, gap="medium")
-    
-    with col1:
-        st.markdown(card_html.format(icon="📄", title="Upload PDF", desc="Max 4MB • Medical records"), unsafe_allow_html=True)
-    with col2:
-        st.markdown(card_html.format(icon="✍️", title="Paste Text", desc="Clinical notes & summaries"), unsafe_allow_html=True)
-    with col3:
-        st.markdown(card_html.format(icon="🎲", title="Demo Cases", desc="25 sample medical cases"), unsafe_allow_html=True)
-    
-    st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
-    
-    # Render all interactive elements at once
-    col1, col2, col3 = st.columns(3, gap="medium")
-    
-    with col1:
+    """, unsafe_allow_html=True)
+
+    # ===== SECONDARY OPTIONS — PDF & Demo side by side =====
+    col_pdf, col_demo = st.columns(2, gap="large")
+
+    with col_pdf:
+        st.markdown("""
+        <div class="secondary-card">
+            <span class="secondary-icon">📄</span>
+            <span class="secondary-label">Upload a PDF</span>
+        </div>
+        """, unsafe_allow_html=True)
         uploaded_file = st.file_uploader("", type=['pdf'], label_visibility="collapsed", key="pdf_upload")
         if uploaded_file:
-            # Check file size (4MB = 4 * 1024 * 1024 bytes)
             if uploaded_file.size > 4 * 1024 * 1024:
                 st.error("File too large! Max 4MB allowed.")
             else:
-                with st.spinner("Extracting..."):
+                with st.spinner("Extracting text from PDF..."):
                     try:
                         from src.pdf_extractor import HybridPDFExtractor
                         import tempfile
@@ -227,18 +220,13 @@ def step_1_input():
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
 
-    with col2:
-        text_input = st.text_area("", height=80, placeholder="Type or paste clinical text here...", label_visibility="collapsed", key="text_input_field")
-        if st.button("USE TEXT", key="btn_text", type="primary", use_container_width=True):
-            if len(text_input) > 10:
-                st.session_state.extracted_text = text_input
-                st.session_state.source_type = 'text'
-                next_step()
-                st.rerun()
-            else:
-                st.warning("Enter more text")
-
-    with col3:
+    with col_demo:
+        st.markdown("""
+        <div class="secondary-card">
+            <span class="secondary-icon">🧪</span>
+            <span class="secondary-label">Try a demo case</span>
+        </div>
+        """, unsafe_allow_html=True)
         case_titles = get_case_titles()
         options = ["-- Select a case --"] + case_titles
         selected = st.selectbox("", options, index=0, label_visibility="collapsed", key="case_sel")
@@ -259,12 +247,12 @@ def step_2_preview():
     st.markdown("""
     <div style="text-align: center; margin-bottom: 1.5rem;">
         <h1 style="font-size: 2.2rem; margin-bottom: 0.3rem;
-                   background: linear-gradient(135deg, #68BA7F 0%, #CFFFDC 100%);
+                   background: linear-gradient(135deg, #00D68F 0%, #00B4D8 100%);
                    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                    background-clip: text;">
             📝 Document Preview
         </h1>
-        <p style="font-size: 0.9rem; color: #7a9a82;">Review your content before AI analysis</p>
+        <p style="font-size: 0.9rem; color: #5a6577;">Review your content before AI analysis</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -273,22 +261,22 @@ def step_2_preview():
     
     # Stats card
     st.markdown(f"""
-    <div style="background: linear-gradient(145deg, rgba(46, 111, 64, 0.15) 0%, rgba(104, 186, 127, 0.1) 100%); 
-                border: 2px solid rgba(46, 111, 64, 0.3); border-radius: 20px; padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    <div style="background: linear-gradient(145deg, rgba(0, 214, 143, 0.08) 0%, rgba(0, 180, 216, 0.05) 100%); 
+                border: 1px solid rgba(0, 214, 143, 0.2); border-radius: 16px; padding: 1.5rem 2rem; margin-bottom: 1.5rem;
                 display: flex; justify-content: space-around; align-items: center;">
         <div style="text-align: center;">
-            <div style="font-size: 1.8rem; font-weight: 900; color: #2E6F40;">{source}</div>
-            <div style="font-size: 0.85rem; color: #c8e6cf;">Source</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #00D68F;">{source}</div>
+            <div style="font-size: 0.85rem; color: #a0aec0;">Source</div>
         </div>
-        <div style="width: 1px; height: 40px; background: rgba(46, 111, 64, 0.3);"></div>
+        <div style="width: 1px; height: 40px; background: rgba(255,255,255,0.06);"></div>
         <div style="text-align: center;">
-            <div style="font-size: 1.8rem; font-weight: 900; color: #68BA7F;">{text_len:,}</div>
-            <div style="font-size: 0.85rem; color: #c8e6cf;">Characters</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #00B4D8;">{text_len:,}</div>
+            <div style="font-size: 0.85rem; color: #a0aec0;">Characters</div>
         </div>
-        <div style="width: 1px; height: 40px; background: rgba(104, 186, 127, 0.3);"></div>
+        <div style="width: 1px; height: 40px; background: rgba(255,255,255,0.06);"></div>
         <div style="text-align: center;">
-            <div style="font-size: 1.8rem; font-weight: 900; color: #CFFFDC;">READY</div>
-            <div style="font-size: 0.85rem; color: #c8e6cf;">Status</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #6fffc4;">READY</div>
+            <div style="font-size: 0.85rem; color: #a0aec0;">Status</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -309,10 +297,10 @@ def step_2_preview():
 
     # Show full document directly (no expander, no duplicate)
     st.markdown(f"""
-    <div style="background: rgba(23, 36, 25, 0.8); border: 1px solid rgba(46, 111, 64, 0.2); 
-                border-radius: 16px; padding: 1.25rem; margin-bottom: 1.5rem;">
-        <div style="font-size: 1rem; font-weight: 600; color: #ffffff; margin-bottom: 0.75rem;">Document Content</div>
-        <div style="background: rgba(13, 26, 18, 0.8); border-radius: 12px; padding: 1.25rem; 
+    <div style="background: rgba(17, 22, 32, 0.8); border: 1px solid rgba(255,255,255,0.06); 
+                border-radius: 14px; padding: 1.25rem; margin-bottom: 1.5rem;">
+        <div style="font-size: 1rem; font-weight: 600; color: #f0f2f5; margin-bottom: 0.75rem;">Document Content</div>
+        <div style="background: rgba(7, 9, 15, 0.8); border-radius: 10px; padding: 1.25rem; 
                     max-height: 300px; overflow-y: auto;">
             <p style="color: #e2e8f0; font-size: 0.95rem; line-height: 1.7; margin: 0; white-space: pre-wrap;">
 {st.session_state.extracted_text}
@@ -362,19 +350,19 @@ def step_3_results():
     conf_pct = int(primary['confidence'] * 100)
     
     st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #2E6F40 0%, #68BA7F 100%); 
-                border-radius: 20px; padding: 2rem; margin-bottom: 1.5rem; text-align: center;">
-        <div style="font-size: 0.85rem; color: rgba(255,255,255,0.7); text-transform: uppercase; 
+    <div style="background: linear-gradient(135deg, #00D68F 0%, #00B4D8 100%); 
+                border-radius: 18px; padding: 2rem; margin-bottom: 1.5rem; text-align: center;">
+        <div style="font-size: 0.85rem; color: rgba(7,9,15,0.6); text-transform: uppercase; 
                     font-weight: 700; letter-spacing: 2px; margin-bottom: 0.75rem;">Primary Diagnosis</div>
-        <div style="font-size: 3rem; font-weight: 900; color: white; line-height: 1; margin-bottom: 0.5rem;">
+        <div style="font-size: 3rem; font-weight: 900; color: #07090f; line-height: 1; margin-bottom: 0.5rem;">
             {primary['code']}
         </div>
-        <div style="font-size: 1.1rem; color: rgba(255,255,255,0.9); margin-bottom: 1rem;">
+        <div style="font-size: 1.1rem; color: rgba(7,9,15,0.8); margin-bottom: 1rem;">
             {primary['description']}
         </div>
-        <div style="display: inline-block; background: rgba(255,255,255,0.2); border-radius: 50px; padding: 0.5rem 1.5rem;">
-            <span style="font-size: 1.5rem; font-weight: 900; color: white;">{conf_pct}%</span>
-            <span style="font-size: 0.9rem; color: rgba(255,255,255,0.8);"> confidence</span>
+        <div style="display: inline-block; background: rgba(7,9,15,0.15); border-radius: 50px; padding: 0.5rem 1.5rem;">
+            <span style="font-size: 1.5rem; font-weight: 900; color: #07090f;">{conf_pct}%</span>
+            <span style="font-size: 0.9rem; color: rgba(7,9,15,0.7);"> confidence</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -385,28 +373,28 @@ def step_3_results():
     
     st.markdown(f"""
     <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-        <div style="flex: 1; background: rgba(46, 111, 64, 0.1); border: 1px solid rgba(46, 111, 64, 0.3); 
+        <div style="flex: 1; background: rgba(0, 214, 143, 0.06); border: 1px solid rgba(0, 214, 143, 0.2); 
                     border-radius: 12px; padding: 1rem; text-align: center;">
-            <div style="font-size: 2rem; font-weight: 800; color: #2E6F40;">{total_codes}</div>
-            <div style="font-size: 0.8rem; color: #c8e6cf;">Total Codes</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #00D68F;">{total_codes}</div>
+            <div style="font-size: 0.8rem; color: #a0aec0;">Total Codes</div>
         </div>
-        <div style="flex: 1; background: rgba(104, 186, 127, 0.1); border: 1px solid rgba(104, 186, 127, 0.3); 
+        <div style="flex: 1; background: rgba(0, 180, 216, 0.06); border: 1px solid rgba(0, 180, 216, 0.2); 
                     border-radius: 12px; padding: 1rem; text-align: center;">
-            <div style="font-size: 2rem; font-weight: 800; color: #68BA7F;">{high_conf}</div>
-            <div style="font-size: 0.8rem; color: #c8e6cf;">High Confidence</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #00B4D8;">{high_conf}</div>
+            <div style="font-size: 0.8rem; color: #a0aec0;">High Confidence</div>
         </div>
-        <div style="flex: 1; background: rgba(207, 255, 220, 0.1); border: 1px solid rgba(207, 255, 220, 0.3); 
+        <div style="flex: 1; background: rgba(124, 58, 237, 0.06); border: 1px solid rgba(124, 58, 237, 0.2); 
                     border-radius: 12px; padding: 1rem; text-align: center;">
-            <div style="font-size: 2rem; font-weight: 800; color: #CFFFDC;">{conf_pct}%</div>
-            <div style="font-size: 0.8rem; color: #c8e6cf;">Best Score</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #a78bfa;">{conf_pct}%</div>
+            <div style="font-size: 0.8rem; color: #a0aec0;">Best Score</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
     # Section header
     st.markdown("""
-    <div style="font-size: 1.1rem; font-weight: 700; color: #ffffff; margin-bottom: 0.75rem; 
-                padding-bottom: 0.5rem; border-bottom: 1px solid rgba(46, 111, 64, 0.3);">
+    <div style="font-size: 1.1rem; font-weight: 700; color: #f0f2f5; margin-bottom: 0.75rem; 
+                padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.06);">
         All Predicted Codes
     </div>
     """, unsafe_allow_html=True)
@@ -426,11 +414,11 @@ def step_3_results():
         
         code_rows.append(f"""
         <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; 
-                    background: rgba(21, 28, 47, 0.6); border-radius: 10px; margin-bottom: 0.5rem;
-                    border-left: 4px solid {color};">
-            <div style="min-width: 30px; font-size: 0.85rem; color: #64748b;">#{i}</div>
-            <div style="min-width: 100px; font-size: 1.2rem; font-weight: 800; color: #ffffff;">{code['code']}</div>
-            <div style="flex: 1; font-size: 0.95rem; color: #b8c5d9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    background: rgba(17, 22, 32, 0.6); border-radius: 10px; margin-bottom: 0.5rem;
+                    border-left: 3px solid {color};">
+            <div style="min-width: 30px; font-size: 0.85rem; color: #5a6577;">#{i}</div>
+            <div style="min-width: 100px; font-size: 1.2rem; font-weight: 800; color: #f0f2f5;">{code['code']}</div>
+            <div style="flex: 1; font-size: 0.95rem; color: #a0aec0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                 {code['description']}
             </div>
             <div style="min-width: 60px; text-align: right; font-size: 1rem; font-weight: 700; color: {color};">
@@ -444,9 +432,9 @@ def step_3_results():
     # Code list for copying
     code_list = ", ".join([p['code'] for p in preds])
     st.markdown(f"""
-    <div style="background: rgba(13, 26, 18, 0.8); border: 1px solid rgba(46, 111, 64, 0.2); 
+    <div style="background: rgba(7, 9, 15, 0.8); border: 1px solid rgba(255,255,255,0.06); 
                 border-radius: 10px; padding: 0.75rem 1rem; margin-top: 1rem;
-                font-family: monospace; font-size: 0.9rem; color: #c8e6cf;">
+                font-family: monospace; font-size: 0.9rem; color: #00D68F;">
         {code_list}
     </div>
     """, unsafe_allow_html=True)
