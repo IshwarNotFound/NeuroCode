@@ -8,13 +8,13 @@ import os
 # ============================================
 # Google Drive Paths (for Colab)
 # ============================================
-DRIVE_BASE = "/content/drive/MyDrive"
-DRIVE_HOME_HEALTH = f"{DRIVE_BASE}/485/485 DOCS/"
-DRIVE_PT_OT = f"{DRIVE_BASE}/485/Other Than 485/"
+DRIVE_BASE = os.environ.get("DRIVE_BASE", "/content/drive/MyDrive")
+DRIVE_HOME_HEALTH = os.environ.get("DRIVE_HOME_HEALTH", f"{DRIVE_BASE}/485/485 DOCS/")
+DRIVE_PT_OT = os.environ.get("DRIVE_PT_OT", f"{DRIVE_BASE}/485/Other Than 485/")
 
 # Project output folder on Drive
-PROJECT_FOLDER = f"{DRIVE_BASE}/ICD10_Project"
-DATA_FOLDER = f"{PROJECT_FOLDER}/data"
+PROJECT_FOLDER = os.environ.get("PROJECT_FOLDER", f"{DRIVE_BASE}/ICD10_Project")
+DATA_FOLDER = os.environ.get("DATA_FOLDER", f"{PROJECT_FOLDER}/data")
 PROCESSED_FOLDER = f"{DATA_FOLDER}/processed"
 SPLIT_FOLDER = f"{DATA_FOLDER}/train_test_split"
 MODELS_FOLDER = f"{PROJECT_FOLDER}/models"

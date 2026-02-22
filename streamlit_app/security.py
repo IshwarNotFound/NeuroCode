@@ -7,10 +7,13 @@ import time
 import re
 import hashlib
 import html
+import logging
 from functools import wraps
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 # ==================== RATE LIMITING ====================
 
@@ -63,6 +66,7 @@ class RateLimiter:
         
         # Record this request
         st.session_state.rate_limit_requests.append(time.time())
+        logger.info("Analysis request allowed (rate limit check passed)")
         return True, None
 
 # Global rate limiter instance (10 analysis requests per minute)
@@ -81,17 +85,31 @@ class InputValidator:
     MAX_FILE_SIZE = 4 * 1024 * 1024  # 4MB
     ALLOWED_FILE_TYPES = ['pdf']
     
-    # Dangerous patterns to detect
+    # Dangerous patterns to detect — defense-in-depth layer
+    # Primary XSS defense is html.escape() at the rendering boundary.
+    # This blocklist catches obviously malicious inputs before they reach the model.
     DANGEROUS_PATTERNS = [
-        r'<script',  # XSS
-        r'javascript:',  # XSS
-        r'on\w+\s*=',  # Event handlers
-        r'data:text/html',  # Data URL XSS
-        r'eval\s*\(',  # Code execution
-        r'exec\s*\(',  # Code execution
-        r'__import__',  # Python injection
-        r'subprocess',  # System command
-        r'os\.system',  # System command
+        r'<script',              # Script tags
+        r'javascript\s*:',       # JS protocol
+        r'on\w+\s*=',            # Event handlers (onclick, onerror, etc.)
+        r'data\s*:text/html',    # Data URL XSS
+        r'eval\s*\(',            # Code execution
+        r'exec\s*\(',            # Code execution
+        r'__import__',           # Python injection
+        r'subprocess',           # System command
+        r'os\.system',           # System command
+        r'<iframe',              # Iframe injection
+        r'<object',              # Object injection
+        r'<embed',               # Embed injection
+        r'<svg[\s/>]',           # SVG-based XSS
+        r'<math[\s/>]',          # MathML-based XSS
+        r'<meta\s',              # Meta refresh injection
+        r'srcdoc\s*=',           # srcdoc XSS
+        r'<link[\s]',            # Link injection
+        r'<base[\s/>]',          # Base tag hijacking
+        r'expression\s*\(',      # CSS expression (IE)
+        r'url\s*\(\s*["\']?javascript',  # CSS url() XSS
+        r'import\s*\(',          # CSS import injection
     ]
     
     @classmethod
@@ -135,12 +153,21 @@ class InputValidator:
         text_lower = text.lower()
         for pattern in cls.DANGEROUS_PATTERNS:
             if re.search(pattern, text_lower, re.IGNORECASE):
+                logger.warning(f"Dangerous input pattern detected: {pattern}")
                 return False, "Invalid input detected. Please provide valid medical text.", ""
         
         # Sanitize and return
         sanitized = cls.sanitize_text(text)
         return True, None, sanitized
     
+    @classmethod
+    def sanitize_for_display(cls, text: str) -> str:
+        """
+        Escape text for safe HTML rendering.
+        This is the PRIMARY XSS defense — always call at the rendering boundary.
+        """
+        return html.escape(text, quote=True)
+
     @classmethod
     def validate_file(cls, uploaded_file) -> Tuple[bool, Optional[str]]:
         """
@@ -169,6 +196,7 @@ class InputValidator:
         # Reset file pointer
         uploaded_file.seek(0)
         
+        logger.info(f"File validation passed: {uploaded_file.name} ({uploaded_file.size} bytes)")
         return True, None
     
     @classmethod
@@ -236,14 +264,22 @@ def inject_security_headers():
     """
     Inject security-related meta tags and headers via HTML.
     Note: Full CSP requires server config, but we add what we can via meta.
+
+    NOTE: Effective security headers (X-Frame-Options, CSP, HSTS, etc.)
+    MUST be set at the HTTP server level (nginx, Cloudflare, etc.),
+    not via <meta> tags which browsers largely ignore for these headers.
+
+    For production deployment, configure your reverse proxy:
+      add_header X-Frame-Options "DENY" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header Content-Security-Policy "default-src 'self'" always;
+      add_header Strict-Transport-Security "max-age=31536000" always;
     """
-    security_html = """
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="X-Frame-Options" content="DENY">
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-    <meta name="robots" content="noindex, nofollow">
-    """
-    st.markdown(security_html, unsafe_allow_html=True)
+    # robots noindex is the only tag that works reliably as a meta tag
+    st.markdown(
+        '<meta name="robots" content="noindex, nofollow">',
+        unsafe_allow_html=True
+    )
 
 
 # ==================== CONVENIENCE FUNCTIONS ====================

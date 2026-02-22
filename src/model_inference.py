@@ -6,6 +6,8 @@ Loads the trained PyTorch CNN model and performs predictions
 import os
 import pickle
 import json
+import hashlib
+import logging
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,10 +16,52 @@ from typing import List, Dict, Tuple
 import re
 from src.vocabulary import Vocabulary
 
+logger = logging.getLogger(__name__)
+
 # Get the paths to model files
 PROJECT_ROOT = Path(__file__).parent.parent
 MODEL_DIR = PROJECT_ROOT / "Downloaded files" / "ICD10_Project" / "models"
 DATA_DIR = PROJECT_ROOT / "Downloaded files" / "ICD10_Project" / "data" / "train_test_split"
+HASH_FILE = PROJECT_ROOT / "Downloaded files" / "ICD10_Project" / "file_hashes.json"
+
+def _compute_sha256(filepath: str) -> str:
+    """Compute SHA-256 hash of a file."""
+    sha256 = hashlib.sha256()
+    with open(filepath, 'rb') as f:
+        for chunk in iter(lambda: f.read(8192), b''):
+            sha256.update(chunk)
+    return sha256.hexdigest()
+
+def _verify_file_integrity(filepath: str, filename_key: str) -> bool:
+    """
+    Verify file integrity using SHA-256 hashes.
+    Uses Trust-On-First-Use (TOFU): computes and stores hash on first run,
+    then validates against stored hash on subsequent runs.
+    """
+    stored_hashes = {}
+    if HASH_FILE.exists():
+        with open(HASH_FILE, 'r') as f:
+            stored_hashes = json.load(f)
+
+    current_hash = _compute_sha256(filepath)
+
+    if filename_key not in stored_hashes:
+        # First use — store the hash (TOFU)
+        stored_hashes[filename_key] = current_hash
+        with open(HASH_FILE, 'w') as f:
+            json.dump(stored_hashes, f, indent=2)
+        logger.info(f"TOFU: Stored initial hash for {filename_key}")
+        return True
+
+    if stored_hashes[filename_key] != current_hash:
+        logger.critical(
+            f"INTEGRITY CHECK FAILED for {filename_key}! "
+            f"Expected: {stored_hashes[filename_key][:16]}... "
+            f"Got: {current_hash[:16]}..."
+        )
+        return False
+
+    return True
 
 # Load ICD-10 descriptions
 try:
@@ -90,8 +134,11 @@ class ICD10Predictor:
     def _load_model(self):
         """Load model, vocabulary, and label encoder"""
         try:
-            # Load vocabulary
+            # Load vocabulary with integrity check
             vocab_path = DATA_DIR / "vocabulary.pkl"
+            if not _verify_file_integrity(str(vocab_path), "vocabulary.pkl"):
+                raise RuntimeError("Vocabulary file integrity check failed! File may have been tampered with.")
+
             with open(vocab_path, 'rb') as f:
                 self.vocabulary = pickle.load(f)
             
@@ -104,8 +151,11 @@ class ICD10Predictor:
                 self.word_to_idx['<PAD>'] = 0
                 self.word_to_idx['<UNK>'] = len(self.vocabulary) + 1
             
-            # Load label encoder
+            # Load label encoder with integrity check
             label_path = DATA_DIR / "label_encoder.pkl"
+            if not _verify_file_integrity(str(label_path), "label_encoder.pkl"):
+                raise RuntimeError("Label encoder file integrity check failed! File may have been tampered with.")
+
             with open(label_path, 'rb') as f:
                 loaded_le = pickle.load(f)
             
@@ -138,20 +188,30 @@ class ICD10Predictor:
                 max_seq_length=self.max_seq_length
             )
             
-            # Load model weights (weights_only=False needed for PyTorch 2.6+)
+            # Load model weights with integrity check
             model_path = MODEL_DIR / "icd10_cnn_latest.pt"
-            checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
+            if not _verify_file_integrity(str(model_path), "icd10_cnn_latest.pt"):
+                raise RuntimeError("Model file integrity check failed! File may have been tampered with.")
+
+            checkpoint = None
+            try:
+                # Try loading with weights_only=True first (safer)
+                checkpoint = torch.load(model_path, map_location=self.device, weights_only=True)
+            except Exception:
+                logger.warning(
+                    "torch.load with weights_only=True failed (checkpoint may contain "
+                    "non-tensor types). Falling back to weights_only=False after integrity check passed."
+                )
+                checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
+
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.model.to(self.device)
             self.model.eval()
             
-            print(f"✓ Model loaded successfully!")
-            print(f"  Vocabulary size: {vocab_size}")
-            print(f"  Number of classes: {n_classes}")
-            print(f"  Device: {self.device}")
+            logger.info(f"Model loaded successfully — vocab: {vocab_size}, classes: {n_classes}, device: {self.device}")
             
         except Exception as e:
-            print(f"Error loading model: {e}")
+            logger.exception("Error loading model")
             raise
     
     def preprocess_text(self, text: str) -> List[str]:
