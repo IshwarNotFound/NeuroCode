@@ -90,33 +90,54 @@ def run_analysis(text):
         st.error(f"⚠️ {error}")
         return []
     
-    # Terminal processing sequence — builds anticipation
+    # Terminal processing sequence — stacking log for dramatic effect
     terminal = st.empty()
+    completed_lines = []
     
-    def show_terminal_line(text_line, status=""):
-        prefix = f'<span style="color:#10b981;">[OK]</span> ' if status == "ok" else '<span style="color:#fff;">&gt;_</span> '
+    def render_terminal(active_line=""):
+        history = ""
+        for line in completed_lines:
+            history += f'<div><span style="color:#10b981;">✓</span> {line}</div>\n'
+        
+        cursor = '<span style="animation: terminalBlink 1s infinite;">█</span>' if active_line else ''
+        active = f'<div style="color:#e5e5e5;"><span style="color:#fff;">›</span> {active_line}{cursor}</div>' if active_line else ''
+        
         terminal.markdown(f"""
-        <div style="background:#0a0a0a; border: 1px solid #1a1a1a; border-radius:10px; padding:1.25rem 1.5rem;">
-            <div style="font-family:'JetBrains Mono', monospace; font-size:0.85rem; color:#888; line-height:1.8;">
-                {prefix}{text_line}<span style="animation: terminalBlink 1s infinite;">█</span>
+        <div style="background:#080808; border: 1px solid #1a1a1a; border-radius:12px; overflow:hidden; margin: 1rem 0;">
+            <div style="background:#111; padding:0.5rem 1rem; border-bottom:1px solid #1a1a1a; display:flex; align-items:center; gap:0.5rem;">
+                <span style="width:8px; height:8px; border-radius:50%; background:#333; display:inline-block;"></span>
+                <span style="width:8px; height:8px; border-radius:50%; background:#333; display:inline-block;"></span>
+                <span style="width:8px; height:8px; border-radius:50%; background:#333; display:inline-block;"></span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:#555; margin-left:0.5rem;">neurocode inference engine</span>
+            </div>
+            <div style="padding:1.25rem 1.5rem; font-family:'JetBrains Mono',monospace; font-size:0.9rem; color:#666; line-height:2;">
+                {history}{active}
             </div>
         </div>
         """, unsafe_allow_html=True)
     
     steps = [
+        "Loading CNN model weights...",
         "Tokenizing clinical entities...",
         "Extracting anatomical biomarkers...",
-        "Applying attention mechanism...",
+        "Applying attention layers [1/3]...",
+        "Applying attention layers [2/3]...",
+        "Applying attention layers [3/3]...",
         "Mapping to ICD-10 latent space...",
-        "Calculating confidence thresholds...",
+        "Ranking confidence scores...",
     ]
     
-    show_terminal_line("Initializing neural network...")
-    time.sleep(0.4)
+    render_terminal("Initializing neural network...")
+    time.sleep(0.5)
+    completed_lines.append("Neural network initialized")
     
     for step_text in steps:
-        show_terminal_line(step_text, status="ok")
-        time.sleep(random.uniform(0.25, 0.6))
+        render_terminal(step_text)
+        time.sleep(random.uniform(0.2, 0.5))
+        completed_lines.append(step_text.replace("...", ""))
+    
+    render_terminal("Compiling results...")
+    time.sleep(0.3)
     
     # Actual model inference
     try:
@@ -246,59 +267,72 @@ def step_1_input():
 
 
 def step_2_preview():
-    st.markdown("""
-    <div style="text-align: center; margin-bottom: 2rem; animation: smoothRise 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
-        <h2 style="font-weight: 600; color: #ffffff !important;">Review</h2>
-        <p style="color: #888 !important;">Verify the extracted text before analysis.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    text_len = len(st.session_state.extracted_text)
-    source = st.session_state.source_type.upper()
-
-    # Stats
-    st.markdown(f"""
-    <div style="display: flex; justify-content: center; gap: 3rem; margin-bottom: 2rem; animation: smoothRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
-        <div style="text-align: center;">
-            <div style="font-size: 1.5rem; font-weight: 800; color: #fff !important;">{source}</div>
-            <div style="font-size: 0.75rem; color: #555 !important; text-transform: uppercase; letter-spacing: 1px;">source</div>
+    # Wrap all preview content in a clearable container
+    preview_container = st.empty()
+    
+    with preview_container.container():
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 2rem; animation: smoothRise 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+            <h2 style="font-weight: 600; color: #ffffff !important;">Review</h2>
+            <p style="color: #888 !important;">Verify the extracted text before analysis.</p>
         </div>
-        <div style="text-align: center;">
-            <div style="font-size: 1.5rem; font-weight: 800; color: #fff !important;">{text_len:,}</div>
-            <div style="font-size: 0.75rem; color: #555 !important; text-transform: uppercase; letter-spacing: 1px;">characters</div>
+        """, unsafe_allow_html=True)
+
+        text_len = len(st.session_state.extracted_text)
+        source = st.session_state.source_type.upper()
+
+        st.markdown(f"""
+        <div style="display: flex; justify-content: center; gap: 3rem; margin-bottom: 2rem; animation: smoothRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 800; color: #fff !important;">{source}</div>
+                <div style="font-size: 0.75rem; color: #555 !important; text-transform: uppercase; letter-spacing: 1px;">source</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 800; color: #fff !important;">{text_len:,}</div>
+                <div style="font-size: 0.75rem; color: #555 !important; text-transform: uppercase; letter-spacing: 1px;">characters</div>
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    if text_len < 50:
-        st.warning("Document too short — need at least 50 characters.")
-        if st.button("Back", use_container_width=True):
-            prev_step()
-            st.rerun()
-        st.stop()
+        if text_len < 50:
+            st.warning("Document too short — need at least 50 characters.")
+            if st.button("Back", use_container_width=True):
+                prev_step()
+                st.rerun()
+            st.stop()
 
-    # Document content
-    st.markdown(f"""
-    <div style="background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; animation: smoothRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
-        <p style="color: #a1a1aa !important; font-size: 0.95rem; line-height: 1.7; max-height: 350px; overflow-y: auto; white-space: pre-wrap; margin: 0;">
+        st.markdown(f"""
+        <div style="background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; animation: smoothRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+            <p style="color: #a1a1aa !important; font-size: 0.95rem; line-height: 1.7; max-height: 350px; overflow-y: auto; white-space: pre-wrap; margin: 0;">
 {st.session_state.extracted_text}
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    col_back, col_analyze = st.columns([1, 3])
-    with col_back:
-        if st.button("Back", use_container_width=True):
-            prev_step()
+        col_back, col_analyze = st.columns([1, 3])
+        with col_back:
+            if st.button("Back", use_container_width=True):
+                prev_step()
+                st.rerun()
+        with col_analyze:
+            analyze_clicked = st.button("Analyze", type="primary", use_container_width=True)
+    
+    # When Analyze is clicked, clear the preview and show terminal full-page
+    if analyze_clicked:
+        preview_container.empty()
+        
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 1.5rem; margin-top: 3rem; animation: smoothRise 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+            <h2 style="font-weight: 600; color: #ffffff !important;">Processing</h2>
+            <p style="color: #555 !important;">Neural network inference in progress.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        preds = run_analysis(st.session_state.extracted_text)
+        if preds is not None:
+            st.session_state.predictions = preds
+            next_step()
             st.rerun()
-    with col_analyze:
-        if st.button("Analyze", type="primary", use_container_width=True):
-            with st.spinner("Analyzing..."):
-                preds = run_analysis(st.session_state.extracted_text)
-                if preds is not None:
-                    st.session_state.predictions = preds
-                    next_step()
-                    st.rerun()
 
 
 def step_3_results():
