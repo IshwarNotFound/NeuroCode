@@ -6,10 +6,6 @@
 
 *Clinical Text → ICD-10 Codes. Powered by Deep Learning.*
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](https://pytorch.org)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.30%2B-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io)
-[![Colab Ready](https://img.shields.io/badge/Google%20Colab-Ready-F9AB00?style=flat-square&logo=googlecolab&logoColor=white)](https://colab.research.google.com)
 
 ---
 
@@ -506,17 +502,13 @@ NeuroCode is an **AI-assisted coding research tool** for educational and experim
 
 ---
 
-## 👤 Author
 
-**Ishwar**
-- GitHub: [@IshwarNotFound](https://github.com/IshwarNotFound)
-- Repository: [github.com/IshwarNotFound/NeuroCode](https://github.com/IshwarNotFound/NeuroCode)
 
----
+
 
 <div align="center">
 
-*Built with PyTorch · Streamlit · Python · ❤️*
+
 
 **⚫ NeuroCode** — *Where Neural Networks Meet Clinical Intelligence*
 
