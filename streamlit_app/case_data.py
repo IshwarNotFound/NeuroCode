@@ -1,27 +1,34 @@
 """
 Sample Discharge Summaries for ICD-10 Prediction
-Based on actual code frequencies from training data
+This module maintains a set of mock clinical cases designed to mimic real-world 
+patient narratives. These are primarily used for testing, demonstration UI, 
+and ensuring the model processes realistic complex medical vocabulary.
 
 DISCLAIMER: All patient cases below are SYNTHETIC and do not represent
 real patients. No Protected Health Information (PHI) is contained herein.
 These cases are generated for demonstration and testing purposes only.
 """
 
-# Safety flag for compliance checks
+# Safety flag used programmatically to confirm this is not production PHI data
 SYNTHETIC_DATA = True
 
-# Top 10 most frequent codes from training:
-# Z91.81 (Fall history) - 368
-# E78.5 (Hyperlipidemia) - 283
-# M10.33 (Gout) - 207
-# E03.9 (Hypothyroidism) - 193
-# I13.0 (Hypertensive CKD) - 187
-# M17.00 (Knee OA) - 174
-# K21.9 (GERD) - 173
-# I25.10 (CAD) - 166
-# Z55.6 (Illiteracy) - 161
-# N18.2 (CKD Stage 2) - 153
+# -------------------------------------------------------------------------
+# Training Class Distributions
+# The demo cases below were engineered specifically to trigger the model's 
+# learned recognition of its top 10 most frequent training codes:
+# - Z91.81 (Fall history) - 368 occurrences
+# - E78.5 (Hyperlipidemia) - 283 occurrences 
+# - M10.33 (Gout) - 207 occurrences
+# - E03.9 (Hypothyroidism) - 193 occurrences
+# - I13.0 (Hypertensive CKD) - 187 occurrences
+# - M17.00 (Knee OA) - 174 occurrences
+# - K21.9 (GERD) - 173 occurrences
+# - I25.10 (CAD) - 166 occurrences
+# - Z55.6 (Illiteracy) - 161 occurrences
+# - N18.2 (CKD Stage 2) - 153 occurrences
+# -------------------------------------------------------------------------
 
+# Dictionary mapping integer IDs to complex, multi-paragraph mock discharge summaries
 DISCHARGE_SUMMARIES = {
     1: {
         "title": "Elderly Fall with History of Falls",
@@ -712,9 +719,15 @@ DISCHARGE DIAGNOSIS:
 }
 
 def get_case(case_number):
-    """Get a specific case by number (1-25)"""
+    """
+    Retrieves a specific test case dictionary based on its ID.
+    Defaults to case 1 if the provided number is out of bounds.
+    """
     return DISCHARGE_SUMMARIES.get(case_number, DISCHARGE_SUMMARIES[1])
 
 def get_case_titles():
-    """Get list of all case titles"""
+    """
+    Extracts purely the string titles of all available test cases.
+    Often used to populate drop-down selection menus in the UI.
+    """
     return [DISCHARGE_SUMMARIES[i]["title"] for i in range(1, 26)]

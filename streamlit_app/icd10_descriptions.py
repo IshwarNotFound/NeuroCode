@@ -1,9 +1,15 @@
 """
 ICD-10 Code Descriptions and Chapter Colors
-Provides human-readable descriptions for common ICD-10 codes
+Provides human-readable descriptions for common ICD-10 codes, 
+as well as visual formatting rules (color schemes) mapping 
+broad physiological chapters to hex colors.
 """
 
-# Chapter color mapping for visual display
+# -------------------------------------------------------------------------
+# UI Color Mapping
+# Links the starting letter of an ICD-10 chapter to a visually pleasing CSS hex color.
+# Used extensively in rendering colored badges during UI output.
+# -------------------------------------------------------------------------
 ICD10_CHAPTER_COLORS = {
     'A': '#FF6B6B',  # Infectious diseases - Red
     'B': '#FF6B6B',  # Infectious diseases - Red
@@ -32,7 +38,10 @@ ICD10_CHAPTER_COLORS = {
     'Z': '#4CAF50',  # Factors influencing health - Green
 }
 
-# Chapter names
+# -------------------------------------------------------------------------
+# Top-level Categorization Text
+# Maps the starting letter of a code to its clinical system or chapter concept.
+# -------------------------------------------------------------------------
 ICD10_CHAPTERS = {
     'A': 'Infectious Diseases',
     'B': 'Infectious Diseases',
@@ -61,7 +70,11 @@ ICD10_CHAPTERS = {
     'Z': 'Health Factors',
 }
 
-# Common ICD-10 code descriptions (expanded list)
+# -------------------------------------------------------------------------
+# Detailed Code Dictionary
+# Provides plain English diagnostic descriptions targeting a curated list 
+# of commonly encountered medical codes, preventing the UI from only showing cryptic alphanumerics.
+# -------------------------------------------------------------------------
 ICD10_DESCRIPTIONS = {
     # Circulatory System (I)
     'I10': 'Essential (primary) hypertension',
@@ -236,21 +249,28 @@ ICD10_DESCRIPTIONS = {
 
 
 def get_code_description(code: str) -> str:
-    """Get the description for an ICD-10 code."""
+    """
+    Looks up the human-readable text description of an ICD-10 code.
+    If the code is absent from the whitelist, it returns a generic fallback.
+    """
     code = code.upper().strip()
     return ICD10_DESCRIPTIONS.get(code, f"ICD-10 Code: {code}")
 
 
 def get_code_color(code: str) -> str:
-    """Get the chapter color for an ICD-10 code."""
+    """
+    Looks up the formatting color associated with an ICD-10 code based on its starting letter (Chapter).
+    """
     if not code:
-        return '#808080'  # Gray for unknown
+        return '#808080'  # Gray fallback for null values
     letter = code[0].upper()
     return ICD10_CHAPTER_COLORS.get(letter, '#808080')
 
 
 def get_chapter_name(code: str) -> str:
-    """Get the chapter name for an ICD-10 code."""
+    """
+    Looks up the high-level disease category (Chapter name) based on the code's starting letter.
+    """
     if not code:
         return 'Unknown'
     letter = code[0].upper()

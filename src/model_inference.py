@@ -1,6 +1,7 @@
 """
 ICD-10 Model Inference Module
-Loads the trained PyTorch CNN model and performs predictions
+This module handles loading the trained PyTorch Convolutional Neural Network (CNN) model
+and using it to predict ICD-10 medical codes from clinical text.
 """
 
 import os
@@ -16,18 +17,33 @@ from typing import List, Dict, Tuple
 import re
 from src.vocabulary import Vocabulary
 
+# Initialize a logger for this module to track events and errors
 logger = logging.getLogger(__name__)
 
-# Get the paths to model files
+# Determine the root directory of the project (two levels up from this file)
 PROJECT_ROOT = Path(__file__).parent.parent
+
+# Define paths to crucial directories and files needed for the model
 MODEL_DIR = PROJECT_ROOT / "Downloaded files" / "ICD10_Project" / "models"
 DATA_DIR = PROJECT_ROOT / "Downloaded files" / "ICD10_Project" / "data" / "train_test_split"
+
+# Path to the file storing SHA-256 hashes to ensure data integrity
 HASH_FILE = PROJECT_ROOT / "Downloaded files" / "ICD10_Project" / "file_hashes.json"
 
 
 def _compute_sha256(filepath: str) -> str:
-    """Compute SHA-256 hash of a file."""
+    """
+    Computes the SHA-256 cryptographic hash of a given file.
+    This is used to verify that the file has not been altered or tampered with.
+    
+    Args:
+        filepath (str): The path to the file to be hashed.
+        
+    Returns:
+        str: The hexadecimal representation of the SHA-256 hash.
+    """
     sha256 = hashlib.sha256()
+    # Read the file in chunks of 8192 bytes to avoid high memory usage for large files
     with open(filepath, 'rb') as f:
         for chunk in iter(lambda: f.read(8192), b''):
             sha256.update(chunk)
@@ -36,25 +52,38 @@ def _compute_sha256(filepath: str) -> str:
 
 def _verify_file_integrity(filepath: str, filename_key: str) -> bool:
     """
-    Verify file integrity using SHA-256 hashes.
-    Uses Trust-On-First-Use (TOFU): computes and stores hash on first run,
-    then validates against stored hash on subsequent runs.
+    Verifies the integrity of a file using SHA-256 hashes.
+    
+    This function uses a Trust-On-First-Use (TOFU) approach:
+    1. If the hash for a file is not yet recorded, it computes and saves it (trusting the first version).
+    2. On subsequent runs, it compares the current hash against the saved hash.
+    
+    Args:
+        filepath (str): The full path to the file to verify.
+        filename_key (str): The identifier key (usually filename) used in the hash dictionary.
+        
+    Returns:
+        bool: True if the file integrity checks out, False otherwise.
     """
     stored_hashes = {}
+    
+    # Load previously stored hashes if the hash file exists
     if HASH_FILE.exists():
         with open(HASH_FILE, 'r') as f:
             stored_hashes = json.load(f)
     
+    # Compute the hash of the current file on disk
     current_hash = _compute_sha256(filepath)
     
+    # If we haven't seen this file before, store its hash (TOFU)
     if filename_key not in stored_hashes:
-        # First use — store the hash (TOFU)
         stored_hashes[filename_key] = current_hash
         with open(HASH_FILE, 'w') as f:
             json.dump(stored_hashes, f, indent=2)
         logger.info(f"TOFU: Stored initial hash for {filename_key}")
         return True
     
+    # If we have seen it, ensure the current hash matches the stored hash
     if stored_hashes[filename_key] != current_hash:
         logger.critical(
             f"INTEGRITY CHECK FAILED for {filename_key}! "
@@ -65,122 +94,178 @@ def _verify_file_integrity(filepath: str, filename_key: str) -> bool:
     
     return True
 
-# Load ICD-10 descriptions
+# Attempt to load helper functions for ICD-10 code descriptions and UI styling
 try:
     from streamlit_app.icd10_descriptions import get_code_description, get_code_color, get_chapter_name
 except ImportError:
-    # Fallback if import fails
+    # If the import fails (e.g., running outside the Streamlit app context), 
+    # define fallback functions that return basic default values
     def get_code_description(code): return f"ICD-10: {code}"
-    def get_code_color(code): return "#808080"
+    def get_code_color(code): return "#808080" # Default gray color
     def get_chapter_name(code): return "Unknown"
 
 
 class TextCNN(nn.Module):
-    """CNN Model for ICD-10 classification - matches trained model architecture"""
+    """
+    Convolutional Neural Network (CNN) architecture for text classification.
+    This structure must exactly match the architecture used during training 
+    so the saved weights can be loaded correctly.
+    """
     def __init__(self, vocab_size, embedding_dim, n_classes, max_seq_length=2000):
         super(TextCNN, self).__init__()
+        
+        # Word embedding layer: converts word indices into dense vector representations
+        # padding_idx=0 ensures that padding tokens do not contribute to the gradients
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
         
-        # 4 conv layers with kernel sizes 2, 3, 4, 5 (matching saved model)
+        # Convolutional layers with different kernel (filter) sizes to capture 
+        # different lengths of n-grams (2-word, 3-word combinations, etc.)
         self.convs = nn.ModuleList([
-            nn.Conv1d(embedding_dim, 128, kernel_size=2),
-            nn.Conv1d(embedding_dim, 128, kernel_size=3),
-            nn.Conv1d(embedding_dim, 128, kernel_size=4),
-            nn.Conv1d(embedding_dim, 128, kernel_size=5),
+            nn.Conv1d(embedding_dim, 128, kernel_size=2), # Extracts features from adjacent pairs of words
+            nn.Conv1d(embedding_dim, 128, kernel_size=3), # Extracts features from triplets
+            nn.Conv1d(embedding_dim, 128, kernel_size=4), # Extracts features from 4-word sequences
+            nn.Conv1d(embedding_dim, 128, kernel_size=5), # Extracts features from 5-word sequences
         ])
         
-        # 4 convs * 128 filters = 512 features
+        # Fully connected (dense) layers to map the extracted features to class predictions
+        # 4 conv layers * 128 filters each = 512 total extracted features
         self.fc1 = nn.Linear(512, 256)
         self.fc2 = nn.Linear(256, n_classes)
+        
+        # Batch normalization helps stabilize and speed up training
         self.bn = nn.BatchNorm1d(256)
+        
+        # Dropout layer to prevent overfitting by randomly zeroing out 50% of elements
         self.dropout = nn.Dropout(0.5)
         
     def forward(self, x):
-        # x: (batch, seq_len)
-        x = self.embedding(x)  # (batch, seq_len, embed_dim)
-        x = x.permute(0, 2, 1)  # (batch, embed_dim, seq_len)
+        """
+        Defines the forward pass of the model: how data flows from input to output.
         
-        # Apply each conv + relu + max_pool
+        Args:
+            x: Input tensor of shape (batch_size, sequence_length) containing word indices.
+        """
+        # Pass input through embedding layer -> Output: (batch_size, sequence_length, embedding_dim)
+        x = self.embedding(x)
+        
+        # Rearrange dimensions for PyTorch's Conv1d which expects (batch_size, channels, sequence_length)
+        # Output: (batch_size, embedding_dim, sequence_length)
+        x = x.permute(0, 2, 1)
+        
+        # Apply each convolutional layer followed by ReLU activation and 1D Max Pooling
         conv_outputs = []
         for conv in self.convs:
+            # Convolution followed by Rectified Linear Unit (ReLU) activation
             c = torch.relu(conv(x))
+            
+            # Max pooling extracts the single most important feature over the entire sequence 
+            # for each of the 128 filters. squeeze(2) removes the now size-1 spatial dimension.
             c = torch.max_pool1d(c, c.size(2)).squeeze(2)
             conv_outputs.append(c)
         
-        # Concatenate all conv outputs: (batch, 512)
+        # Combine the pooled features from all 4 convolutional layers
+        # Resulting shape: (batch_size, 512)
         x = torch.cat(conv_outputs, dim=1)
         
+        # Pass through a dropout layer for regularization
         x = self.dropout(x)
+        
+        # First fully connected layer with ReLU activation
         x = torch.relu(self.fc1(x))
+        
+        # Batch normalization
         x = self.bn(x)
+        
+        # Second dropout layer
         x = self.dropout(x)
+        
+        # Final fully connected layer mapping to the number of target classes,
+        # followed by a sigmoid activation to output probabilities between 0 and 1
+        # (appropriate for multi-label classification where multiple ICD codes can be true)
         x = torch.sigmoid(self.fc2(x))
         
         return x
 
 
 class ICD10Predictor:
-    """Handles model loading and prediction"""
+    """
+    Main controller class that ties everything together. 
+    It handles loading the trained artifacts (model, vocabulary, labels) 
+    and exposes a method to process new text and return predictions.
+    """
     
     def __init__(self):
+        # Initialize placeholders for our loaded artifacts
         self.model = None
         self.vocabulary = None
         self.label_encoder = None
         self.word_to_idx = None
         self.idx_to_code = None
-        self.code_to_idx = None  # Reverse mapping
+        self.code_to_idx = None  # Mapping from an ICD-10 code string back to its class index
+        
+        # The maximum number of words/tokens considered in a single document
         self.max_seq_length = 2000
+        
+        # Decide whether to run on GPU ('cuda') or CPU
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
+        # Load the model and related files upon initialization
         self._load_model()
     
     def _load_model(self):
-        """Load model, vocabulary, and label encoder"""
+        """Loads the pre-trained vocabulary, label encoder, and PyTorch model weights."""
         try:
-            # Load vocabulary with integrity check
+            # --- Load Vocabulary ---
             vocab_path = DATA_DIR / "vocabulary.pkl"
+            
+            # Verify that the vocabulary file hasn't been tampered with
             if not _verify_file_integrity(str(vocab_path), "vocabulary.pkl"):
                 raise SecurityError("Vocabulary file integrity check failed! File may have been tampered with.")
+                
             with open(vocab_path, 'rb') as f:
                 self.vocabulary = pickle.load(f)
             
-            # Use the existing word_to_idx from the loaded Vocabulary object
+            # Setup the dictionary mapping words to their integer index
             if hasattr(self.vocabulary, 'word2idx'):
                 self.word_to_idx = self.vocabulary.word2idx
             else:
-                # Fallback if it's a raw list (older version compatibility)
+                # Fallback for older formats where vocabulary is just a list of words
                 self.word_to_idx = {word: idx for idx, word in enumerate(self.vocabulary, start=1)}
-                self.word_to_idx['<PAD>'] = 0
-                self.word_to_idx['<UNK>'] = len(self.vocabulary) + 1
+                self.word_to_idx['<PAD>'] = 0  # Index 0 is reserved for padding
+                self.word_to_idx['<UNK>'] = len(self.vocabulary) + 1  # Index for unknown words
             
-            # Load label encoder with integrity check
+            # --- Load Label Encoder ---
             label_path = DATA_DIR / "label_encoder.pkl"
+            
+            # Verify the integrity of the label encoder file
             if not _verify_file_integrity(str(label_path), "label_encoder.pkl"):
                 raise SecurityError("Label encoder file integrity check failed! File may have been tampered with.")
+                
             with open(label_path, 'rb') as f:
                 loaded_le = pickle.load(f)
             
-            # Handle if it's a dictionary (from notebook) or raw object
+            # Extract class labels from the loaded encoder object
             if isinstance(loaded_le, dict):
                 self.classes_ = loaded_le.get('classes')
-                # If we need the actual MLB object for other things:
                 self.label_encoder = loaded_le.get('mlb') 
             else:
                 self.label_encoder = loaded_le
                 self.classes_ = self.label_encoder.classes_
             
-            # Build index to code mapping (and reverse)
+            # Create bi-directional mappings between class indices and ICD-10 code names
             self.idx_to_code = {idx: code for idx, code in enumerate(self.classes_)}
             self.code_to_idx = {code: idx for idx, code in enumerate(self.classes_)}
             
-            # Load preprocessing summary
+            # --- Load Preprocessing Dimensions ---
             preproc_path = DATA_DIR / "preprocessing_summary.json"
             with open(preproc_path, 'r') as f:
                 preproc_info = json.load(f)
             
-            vocab_size = len(self.word_to_idx)  # Exact size to match saved model
+            # Network dimensions must align smoothly with the artifacts
+            vocab_size = len(self.word_to_idx)
             n_classes = preproc_info['n_classes']
             
-            # Initialize model
+            # --- Initialize Neural Network Model ---
             self.model = TextCNN(
                 vocab_size=vocab_size,
                 embedding_dim=128,
@@ -188,21 +273,28 @@ class ICD10Predictor:
                 max_seq_length=self.max_seq_length
             )
             
-            # Load model weights with integrity check
+            # --- Load Model Weights ---
             model_path = MODEL_DIR / "icd10_cnn_latest.pt"
+            
+            # Verify model weight file integrity
             if not _verify_file_integrity(str(model_path), "icd10_cnn_latest.pt"):
                 raise SecurityError("Model file integrity check failed! File may have been tampered with.")
             
+            # Load the actual learned weights into the model
             try:
+                # First attempt secure loading (weights_only=True blocks loading arbitrary executable objects)
                 checkpoint = torch.load(model_path, map_location=self.device, weights_only=True)
             except Exception:
                 logger.warning(
                     "torch.load with weights_only=True failed (checkpoint may contain "
                     "non-tensor types). Falling back to weights_only=False after integrity check passed."
                 )
+                # Fallback if the saved checkpoint format required weights_only=False
                 checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
             
             self.model.load_state_dict(checkpoint['model_state_dict'])
+            
+            # Move model to CPU/GPU and set to evaluation mode (disables dropout layers during inference)
             self.model.to(self.device)
             self.model.eval()
             
@@ -213,17 +305,19 @@ class ICD10Predictor:
             raise
     
     def preprocess_text(self, text: str) -> List[str]:
-        """Preprocess text similar to training"""
-        # Lowercase and basic cleaning
+        """
+        Cleans and normalizes incoming clinical text exactly as it was processed during training.
+        """
+        # Convert all text to lower case to ensure uniformity
         text = text.lower()
         
-        # Remove special characters but keep medical terms
+        # Remove most punctuation/special characters, keeping only letters, numbers, spaces, periods, dashes, and slashes
         text = re.sub(r'[^a-z0-9\s\.\-/]', ' ', text)
         
-        # Tokenize
+        # Split text into a list of constituent words based on whitespace
         tokens = text.split()
         
-        # Basic medical abbreviation expansion (simplified)
+        # Simple dictionary for expanding common medical acronyms
         abbrev_map = {
             'pt': 'patient', 'dx': 'diagnosis', 'htn': 'hypertension',
             'ckd': 'chronic kidney disease',
@@ -231,40 +325,54 @@ class ICD10Predictor:
             'chf': 'congestive heart failure', 'cva': 'cerebrovascular accident'
         }
         
+        # Expand abbreviations where applicable
         tokens = [abbrev_map.get(token, token) for token in tokens]
         
         return tokens
     
     def encode_text(self, tokens: List[str]) -> torch.Tensor:
-        """Convert tokens to indices"""
+        """
+        Translates a list of string tokens (words) into a PyTorch tensor populated by integers,
+        which is the format required by the neural network's embedding layer.
+        """
+        # Convert each word to its corresponding integer index. If unknown, use the <UNK> index.
         indices = [self.word_to_idx.get(token, self.word_to_idx['<UNK>']) for token in tokens]
         
-        # Pad or truncate to max_seq_length
+        # If the input text is too short, pad it out to max sequence length with zeros (which represent <PAD>)
         if len(indices) < self.max_seq_length:
             indices += [0] * (self.max_seq_length - len(indices))
         else:
+            # If the input text is too long, truncate it to the maximum allowed length
             indices = indices[:self.max_seq_length]
         
-        return torch.tensor(indices, dtype=torch.long).unsqueeze(0)  # Add batch dimension
+        # Convert the Python list to a PyTorch long tensor, and add a "batch" dimension of size 1 
+        # (since we are processing a single document at a time here)
+        return torch.tensor(indices, dtype=torch.long).unsqueeze(0)
     
     def _find_whole_word(self, text: str, word: str) -> bool:
         """
-        Check if a whole word exists in text (not as part of another word).
-        Uses word boundary matching to prevent 'dm' matching 'admission'.
+        Checks if a specific word exists as a whole standalone word within a given text block.
+        This prevents substring false positives, e.g., 'dm' (diabetes) inside 'admission'.
         """
-        # Use regex word boundaries for accurate matching
+        # \b denotes a 'word boundary' in regular expressions
         pattern = r'\b' + re.escape(word) + r'\b'
         return bool(re.search(pattern, text, re.IGNORECASE))
     
     def _apply_keyword_rules(self, text: str, probs: np.ndarray) -> np.ndarray:
         """
-        Apply rule-based keyword boosting to improve prediction accuracy.
-        Uses whole-word matching to avoid false positives.
+        A rule-based AI enhancement layer.
+        
+        While the neural network makes general statistical predictions, sometimes explicit
+        keywords found in the text guarantee an ICD-10 code applies. This function boosts 
+        the predicted probability scores for particular codes when their associated explicit 
+        keywords or phrases are unambiguously found.
         """
         text_lower = text.lower()
         
-        # Keyword rules: {ICD_code: [(keyword, is_phrase, boost_amount), ...]}
-        # is_phrase=True means search as substring, False means whole word only
+        # Dictionary outlining rules: 
+        # Key: Expected ICD-10 code snippet 
+        # Value: List of tuples -> (Trigger keyword/phrase, is_phrase_flag, boost_amount)
+        # Note: If is_phrase is True, it does a simple substring match. If False, it uses a whole-word match.
         keyword_rules = {
             # Falls and mobility
             'Z91.81': [('fall', False, 0.8), ('falling', False, 0.8), ('fell', False, 0.8), ('history of fall', True, 0.9)],
@@ -318,39 +426,40 @@ class ICD10Predictor:
             'N39.0': [('urinary tract infection', True, 0.9), ('uti', False, 0.8)],
             'N40.0': [('benign prostatic hyperplasia', True, 0.9), ('bph', False, 0.8), ('prostate', False, 0.5)],
             
-            # Other
+            # Other Specific Nutrient conditions
             'E55.9': [('vitamin d deficiency', True, 0.9)],
         }
         
-        # Track which codes were boosted
+        # Set to track which specific ICD-10 classes received a boost for logging/debugging purposes
         boosted_codes = set()
         
         for code, rules in keyword_rules.items():
-            # Find the index for this code
+            # Convert the ICD code string to the model's internal class index
             code_idx = None
             for idx, c in self.idx_to_code.items():
                 if c.startswith(code):
                     code_idx = idx
                     break
             
+            # Skip if this rule refers to a code the CNN does not recognize
             if code_idx is None:
                 continue
             
-            # Check each keyword rule
+            # Cycle through all keyword patterns mapped to this code
             for rule in rules:
-                keyword = rule[0]
-                is_phrase = rule[1]
-                boost = rule[2]
+                keyword = rule[0]      # The text triggered term
+                is_phrase = rule[1]    # Whether to match exactly as a whole word
+                boost = rule[2]        # Amount to increase model confidence by
                 
-                # Check if keyword is present
+                # Check for the keyword based on its matching rule type
                 if is_phrase:
-                    # Substring search for phrases
+                    # Simple substring contains check
                     if keyword in text_lower:
-                        # Apply boost (additive, not overriding)
+                        # Apply boost, capping the possibility at 1.0 (100% confidence)
                         probs[code_idx] = min(1.0, probs[code_idx] + boost)
                         boosted_codes.add(code)
                 else:
-                    # Whole word search for single words
+                    # Stricter standalone whole-word check
                     if self._find_whole_word(text_lower, keyword):
                         probs[code_idx] = min(1.0, probs[code_idx] + boost)
                         boosted_codes.add(code)
@@ -359,50 +468,57 @@ class ICD10Predictor:
     
     def predict(self, text: str, top_k: int = 10, threshold: float = 0.1) -> List[Dict]:
         """
-        Predict ICD-10 codes from text
+        Takes raw medical text and processes it completely to return structured ICD-10 predictions.
         
         Args:
-            text: Medical text to analyze
-            top_k: Number of top predictions to return
-            threshold: Minimum confidence threshold
+            text: Raw input medical record or notes.
+            top_k: The maximum number of predicted codes to return.
+            threshold: Minimum probability/confidence required to include a prediction in the result.
         
         Returns:
-            List of predictions with code, description, confidence, color
+            A list of dictionary objects describing each predicted ICD-10 code (code, description, confidence, etc.).
         """
         if not self.model:
             raise RuntimeError("Model not loaded!")
         
-        # Preprocess
+        # 1. Clean and normalize the raw text into word tokens
         tokens = self.preprocess_text(text)
+        
+        # 2. Convert string tokens to model-consumable integer embeddings mapped to memory/GPU device
         encoded = self.encode_text(tokens).to(self.device)
         
-        # Predict
+        # 3. Perform a forward pass through the Neural Network
+        # torch.no_grad() speeds up computation and saves memory since we are not training/updating weights
         with torch.no_grad():
             predictions = self.model(encoded)
         
-        # Get probabilities
+        # 4. Extract raw probability scores mapped by index (flattening batch layer)
         probs = predictions.cpu().numpy()[0]
         
-        # Apply keyword-based boosting for robustness
+        # 5. Integrate deterministic rule-based predictions to cover neural network weak spots
         probs = self._apply_keyword_rules(text, probs)
         
-        # Re-normalize/Clip (sigmoid output is 0-1, boosting can go >1)
+        # 6. Safety boundary: Ensure all probabilities remain strictly between 0 and 1
         probs = np.clip(probs, 0.0, 1.0)
         
-        # Get top predictions above threshold
+        # 7. Identify the indices covering the top-scoring predictions by ordering them in descending fashion
         top_indices = np.argsort(probs)[::-1]
         
         results = []
         for idx in top_indices:
+            # Stop accumulating results once we hit the requested limit
             if len(results) >= top_k:
                 break
             
+            # Check the probability score; if it drops below the cutoff, we can stop evaluating (since array is sorted)
             confidence = float(probs[idx])
             if confidence < threshold:
                 continue
             
+            # Retrieve the standard ICD-10 code string mapping directly to this prediction
             code = self.idx_to_code[idx]
             
+            # Bundle all the necessary metadata detailing this prediction for the frontend application
             results.append({
                 'code': code,
                 'description': get_code_description(code),
@@ -414,11 +530,15 @@ class ICD10Predictor:
         return results
 
 
-# Global predictor instance
+# Global placeholder for the Predictor instance to implement a Singleton pattern
 _predictor = None
 
 def get_predictor() -> ICD10Predictor:
-    """Get or create predictor instance (singleton)"""
+    """
+    Returns the single global instance of the ICD10Predictor model.
+    Instantiates the model upon the very first call, and caches it for all future uses.
+    This saves significant compute time/memory by avoiding duplicate loading of weights.
+    """
     global _predictor
     if _predictor is None:
         _predictor = ICD10Predictor()
@@ -427,14 +547,17 @@ def get_predictor() -> ICD10Predictor:
 
 def predict_icd10(text: str, top_k: int = 10) -> List[Dict]:
     """
-    Main prediction function
+    Public entry point to be called rapidly from other parts of the application.
     
     Args:
-        text: Medical text
-        top_k: Number of predictions to return
-    
+        text (str): Complete medical note text to be parsed.
+        top_k (int): Limit to the number of returned diagnoses.
+        
     Returns:
-        List of predictions
+        List of dictionaries with 'code', 'description', 'confidence', etc.
     """
+    # Fetch the singleton instance of the predictor logic
     predictor = get_predictor()
+    
+    # Process the text against the model and return the results
     return predictor.predict(text, top_k=top_k)

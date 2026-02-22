@@ -1,6 +1,11 @@
 """
 NeuroCode - Neural Networks for Medical Coding
 Secure AI-Powered ICD-10 Auto-Coding System
+
+This module serves as the primary entry point for the Streamlit web application.
+It manages the user interface, session state for the multi-step wizard, 
+file uploads, layout rendering, and coordinates with the security module 
+and the backend model inference scripts.
 """
 
 import streamlit as st
@@ -12,31 +17,38 @@ from pathlib import Path
 import os
 import logging
 
+# Initialize module-level logger for application events
 logger = logging.getLogger(__name__)
 
-# Add parent directory to path for imports - FIXED PATH RESOLUTION
+# -------------------------------------------------------------------------
+# Path Resolution
+# Ensure the parent directory (project root) is in the Python path so that
+# imports from the `src` and `config` packages work correctly regardless of 
+# where this script is executed from.
+# -------------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# Debug: Print path info
-# print(f"PROJECT_ROOT: {PROJECT_ROOT}")
-# print(f"sys.path[0]: {sys.path[0]}")
-
-# Import Vocabulary for pickle loading
+# Import Vocabulary. It MUST be imported before unpickling the model vocabulary
+# to ensure the unpickler can find the exact class definition.
 from src.vocabulary import Vocabulary
 
-# Import helpers
+# Import UI helpers and synthetic data
 from streamlit_app.case_data import get_case, get_case_titles
 from streamlit_app.icd10_descriptions import get_code_color, get_chapter_name
 
-# Import security module
+# Import custom security middleware for input validation, rate limiting, and XSS defense
 from streamlit_app.security import (
     InputValidator, SessionSecurity, 
     secure_analysis_check, inject_security_headers
 )
 
-# Page Configuration — Centered for focused minimalism
+# -------------------------------------------------------------------------
+# Page Configuration
+# Set the initial layout, title, and favicon. 'centered' layout is used 
+# to maintain a clean, focused, minimalist design aesthetic.
+# -------------------------------------------------------------------------
 st.set_page_config(
     page_title="NeuroCode | AI",
     page_icon="⚫",
@@ -44,31 +56,42 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Inject security headers
+# Inject security headers (like noindex robots tag) early in page load
 inject_security_headers()
 
-# Load CSS
 def load_css():
+    """
+    Reads the custom styles.css file and injects it into the Streamlit app.
+    This provides all the custom UI components, hover effects, and typography.
+    """
     css_path = Path(__file__).parent / "styles.css"
     with open(css_path) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
+# Apply CSS immediately
 load_css()
 
-# Initialize secure session
+# Initialize session persistence tracking to prevent timeout/hijacking
 SessionSecurity.init_session()
 
-# Session State
+# -------------------------------------------------------------------------
+# Session State Variables
+# Streamlit re-runs the entire script on every interaction. We use 
+# st.session_state to persist data across these re-runs.
+# -------------------------------------------------------------------------
 if 'step' not in st.session_state:
-    st.session_state.step = 1
+    st.session_state.step = 1                # Tracks current wizard page (1, 2, or 3)
 if 'extracted_text' not in st.session_state:
-    st.session_state.extracted_text = ""
+    st.session_state.extracted_text = ""     # Holds the medical test to analyze
 if 'source_type' not in st.session_state:
-    st.session_state.source_type = None
+    st.session_state.source_type = None      # Tracks origin ('text', 'pdf', or 'demo')
 if 'predictions' not in st.session_state:
-    st.session_state.predictions = None
+    st.session_state.predictions = None      # Stores the final array of ICD-10 prediction objects
 
-# Navigation
+# -------------------------------------------------------------------------
+# Navigation Helpers
+# Functions to move back and forth through the application wizard states.
+# -------------------------------------------------------------------------
 def next_step():
     st.session_state.step += 1
 
@@ -80,24 +103,31 @@ def reset_wizard():
     st.session_state.extracted_text = ""
     st.session_state.predictions = None
 
-# Analysis with security checks
+# -------------------------------------------------------------------------
+# Core Analysis Logic
+# This function acts as the bridge between the UI and the ML model.
+# It also handles security scanning, rate limiting, and the terminal animation.
+# -------------------------------------------------------------------------
 def run_analysis(text):
-    # Rate limiting check
+    # 1. Security Check: Enforce rate limiting to prevent abuse/dos
     allowed, error = secure_analysis_check()
     if not allowed:
         st.error(f"⚠️ {error}")
         return []
     
+    # 2. Security Check: Validate payload size and hunt for XSS/injection patterns
     is_valid, error, sanitized_text = InputValidator.validate_text_input(text)
     if not is_valid:
         st.error(f"⚠️ {error}")
         return []
     
-    # Terminal processing sequence — stacking log for dramatic effect
+    # 3. Terminal Animation UI System
+    # Creates an empty placeholder and sequentially updates it to mimic a booting console.
     terminal = st.empty()
     completed_lines = []
     
     def render_terminal(active_line=""):
+        """Renders the fake terminal UI, stacking completed lines and blinking an active cursor."""
         history = ""
         for line in completed_lines:
             history += f'<div><span style="color:#10b981;">✓</span> {line}</div>\n'
@@ -119,6 +149,7 @@ def run_analysis(text):
         </div>
         """, unsafe_allow_html=True)
     
+    # Define the sequence of fake processing steps for visual feedback
     steps = [
         "Loading CNN model weights...",
         "Tokenizing clinical entities...",
@@ -130,6 +161,7 @@ def run_analysis(text):
         "Ranking confidence scores...",
     ]
     
+    # Execute terminal animation loops with artificial delays
     render_terminal("Initializing neural network...")
     time.sleep(0.5)
     completed_lines.append("Neural network initialized")
@@ -142,13 +174,15 @@ def run_analysis(text):
     render_terminal("Compiling results...")
     time.sleep(0.3)
     
-    # Actual model inference
+    # 4. Actual Model Inference
     try:
         from src.model_inference import predict_icd10
+        # Call the singleton predictor and get top 50 codes
         predictions = predict_icd10(sanitized_text, top_k=50)
         
-        terminal.empty()  # Clear the terminal
+        terminal.empty()  # Clear the terminal UI once done
         
+        # Add cosmetic "evidence" text for UI display
         words = sanitized_text.split()
         for pred in predictions:
             if len(words) > 3:
@@ -157,6 +191,7 @@ def run_analysis(text):
             else:
                 pred['evidence'] = "Clinical pattern match"
 
+        # Return only the top 10 most confident predictions for the UI
         return predictions[:10]
         
     except Exception as e:
@@ -165,9 +200,10 @@ def run_analysis(text):
         st.error("Analysis failed. Please try again or use a demo case.")
         return None
 
-# ==================== WIZARD ====================
+# ==================== WIZARD UI DEFINITIONS ====================
 
 def render_step_indicator():
+    """Renders the top navigation dots indicating Input -> Preview -> Results"""
     steps = ["Input", "Preview", "Results"]
     
     cols = st.columns(len(steps))
@@ -183,7 +219,11 @@ def render_step_indicator():
     st.markdown("---")
 
 def step_1_input():
-    # HERO — Pure typographic authority
+    """
+    Step 1: The landing page.
+    Allows user to provide data via free text, PDF upload, or pre-loaded demo selection.
+    """
+    # HERO section — Branding block
     st.markdown("""
     <div class="hero-container">
         <h1 class="hero-title">NeuroCode.</h1>
@@ -191,7 +231,7 @@ def step_1_input():
     </div>
     """, unsafe_allow_html=True)
 
-    # PRIMARY INPUT — The scanner
+    # PRIMARY INPUT — Free text field
     text_input = st.text_area(
         "", 
         height=200, 
@@ -205,17 +245,18 @@ def step_1_input():
             st.session_state.extracted_text = text_input
             st.session_state.source_type = 'text'
             next_step()
-            st.rerun()
+            st.rerun()  # Forces immediate layout update
         else:
             st.warning("Please enter at least a few sentences of clinical text.")
 
-    # OR DIVIDER
+    # Visual OR DIVIDER
     st.markdown('<div class="minimal-divider">or</div>', unsafe_allow_html=True)
 
-    # GHOST CARDS — PDF & Demo side by side
+    # SECONDARY INPUTS — PDF & Demo side by side
     col_pdf, col_demo = st.columns(2, gap="large")
 
     with col_pdf:
+        # PDF Upload Block
         st.markdown("""
         <div class="ghost-card">
             <span class="ghost-icon">📄</span>
@@ -224,7 +265,9 @@ def step_1_input():
         </div>
         """, unsafe_allow_html=True)
         uploaded_file = st.file_uploader("", type=['pdf'], label_visibility="collapsed", key="pdf_upload")
+        
         if uploaded_file:
+            # Validate PDF size and MIME type
             is_valid, file_error = InputValidator.validate_file(uploaded_file)
             if not is_valid:
                 st.error(f"⚠️ {file_error}")
@@ -232,13 +275,18 @@ def step_1_input():
                 with st.spinner("Extracting text..."):
                     tmp_path = None
                     try:
+                        # Streamlit passes files as bytes in memory. We must save them to disk
+                        # temporarily so pdfplumber/pytesseract can read them.
                         from src.pdf_extractor import HybridPDFExtractor
                         import tempfile
                         with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
                             tmp.write(uploaded_file.getvalue())
                             tmp_path = tmp.name
+                        
+                        # Use the hybrid native/OCR extractor
                         extractor = HybridPDFExtractor()
                         result = extractor.smart_extract(tmp_path)
+                        
                         if result.success:
                             st.session_state.extracted_text = result.full_text
                             st.session_state.source_type = 'pdf'
@@ -250,10 +298,12 @@ def step_1_input():
                         logger.exception("PDF extraction error")
                         st.error("An error occurred processing the PDF. Please try again.")
                     finally:
+                        # Always clean up the temporary PDF file to prevent disk fill-up
                         if tmp_path and os.path.exists(tmp_path):
                             os.unlink(tmp_path)
 
     with col_demo:
+        # Demo Cases Block
         st.markdown("""
         <div class="ghost-card">
             <span class="ghost-icon">⚡</span>
@@ -261,12 +311,16 @@ def step_1_input():
             <div style="font-size: 0.75rem; color: #555 !important;">Pre-loaded clinical cases</div>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Populate selectbox with titles from case_data.py
         case_titles = get_case_titles()
         options = ["Choose a clinical case"] + case_titles
         selected = st.selectbox("", options, index=0, label_visibility="collapsed", key="case_sel")
+        
         if st.button("Load Case", key="btn_demo", use_container_width=True):
             if selected != "Choose a clinical case":
                 selected_idx = options.index(selected) - 1
+                # Retrieve the full text for the selected case
                 case_data = get_case(selected_idx + 1)
                 st.session_state.extracted_text = case_data['text']
                 st.session_state.source_type = 'demo'
@@ -277,7 +331,12 @@ def step_1_input():
 
 
 def step_2_preview():
-    # Wrap all preview content in a clearable container
+    """
+    Step 2: Preview the Extracted Text.
+    Allows user to verify the input before sending it to the model. 
+    Crucial for PDF uploads to ensure OCR worked.
+    """
+    # Create an empty placeholder container that can be cleared when the terminal boots up.
     preview_container = st.empty()
     
     with preview_container.container():
@@ -291,6 +350,7 @@ def step_2_preview():
         text_len = len(st.session_state.extracted_text)
         source = st.session_state.source_type.upper()
 
+        # Display metadata
         st.markdown(f"""
         <div style="display: flex; justify-content: center; gap: 3rem; margin-bottom: 2rem; animation: smoothRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
             <div style="text-align: center;">
@@ -304,13 +364,15 @@ def step_2_preview():
         </div>
         """, unsafe_allow_html=True)
 
+        # Minimum length validation 
         if text_len < 50:
             st.warning("Document too short — need at least 50 characters.")
             if st.button("Back", use_container_width=True):
                 prev_step()
                 st.rerun()
-            st.stop()
+            st.stop() # Halts execution and prevents rendering the Analyze button
 
+        # Text Display Box — ESCAPED for XSS prevention using html.escape
         st.markdown(f"""
         <div style="background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; animation: smoothRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
             <p style="color: #a1a1aa !important; font-size: 0.95rem; line-height: 1.7; max-height: 350px; overflow-y: auto; white-space: pre-wrap; margin: 0;">
@@ -319,6 +381,7 @@ def step_2_preview():
         </div>
         """, unsafe_allow_html=True)
 
+        # Bottom buttons
         col_back, col_analyze = st.columns([1, 3])
         with col_back:
             if st.button("Back", use_container_width=True):
@@ -327,7 +390,8 @@ def step_2_preview():
         with col_analyze:
             analyze_clicked = st.button("Analyze", type="primary", use_container_width=True)
     
-    # When Analyze is clicked, clear the preview and show terminal full-page
+    # State transition logic: When Analyze is clicked, clear the preview UI instantly
+    # and swap into the terminal animation mode entirely.
     if analyze_clicked:
         preview_container.empty()
         
@@ -338,14 +402,22 @@ def step_2_preview():
         </div>
         """, unsafe_allow_html=True)
         
+        # Trigger the blocking prediction pipeline
         preds = run_analysis(st.session_state.extracted_text)
+        
         if preds is not None:
+            # Once ML completes, proceed to final step
             st.session_state.predictions = preds
             next_step()
             st.rerun()
 
 
 def step_3_results():
+    """
+    Step 3: Render the Output.
+    Displays the primary predicted diagnosis prominently, followed by a list 
+    of secondary diagnoses and their confidence scores.
+    """
     st.markdown("""
     <div style="text-align: center; margin-bottom: 2rem; animation: smoothRise 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
         <h2 style="font-weight: 600; color: #ffffff !important;">Analysis Complete</h2>
@@ -362,7 +434,7 @@ def step_3_results():
         """, unsafe_allow_html=True)
         return
 
-    # PRIMARY DIAGNOSIS — Massive, stark
+    # PRIMARY DIAGNOSIS — Extract the highest confidence result and render it huge.
     primary = preds[0]
     conf_pct = int(primary['confidence'] * 100)
 
@@ -382,7 +454,7 @@ def step_3_results():
     </div>
     """, unsafe_allow_html=True)
 
-    # ALL PREDICTED CODES
+    # ALL PREDICTED CODES — Render the remaining predictions in a compact list format.
     if len(preds) > 1:
         st.markdown('<div style="font-size: 0.8rem; color: #555 !important; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem;">All Predictions</div>', unsafe_allow_html=True)
 
@@ -390,6 +462,8 @@ def step_3_results():
         for i, code in enumerate(preds[1:], 2):
             conf = code['confidence']
             conf_pct = int(conf * 100)
+            
+            # Fade out lower-confidence predictions by dropping row opacity
             opacity = max(0.4, conf)
 
             code_rows.append(f"""
@@ -404,7 +478,7 @@ def step_3_results():
 
         st.markdown("".join(code_rows), unsafe_allow_html=True)
 
-    # Code list for copying
+    # Copyable code list block (e.g., "Z91.81, I10, E78.5")
     code_list = ", ".join([p['code'] for p in preds])
     st.markdown(f"""
     <div style="background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 8px; padding: 0.75rem 1rem; margin-top: 1.5rem; font-family: monospace; font-size: 0.85rem; color: #666 !important;">
@@ -412,15 +486,20 @@ def step_3_results():
     </div>
     """, unsafe_allow_html=True)
 
+    # Start over button
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     if st.button("New Analysis", type="primary", use_container_width=True):
         reset_wizard()
         st.rerun()
 
 
-# ==================== MAIN ====================
+# ==================== MAIN DISPATCHER ====================
 
 def main():
+    """
+    Main entry point for the Streamlit application.
+    Checks the session state 'step' and routes to the appropriate UI rendering function.
+    """
     if st.session_state.step == 1:
         step_1_input()
     elif st.session_state.step == 2:

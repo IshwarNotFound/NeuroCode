@@ -21,12 +21,15 @@ import json
 import pandas as pd
 from tqdm import tqdm
 
-# PDF extraction libraries
+# Attempt to load native PDF parsing library 
+# It's wrapped in a try-except to prevent crashing if the user hasn't installed dependencies
 try:
     import pdfplumber
 except ImportError:
     pdfplumber = None
 
+# Attempt to load OCR capabilities (Optical Character Recognition)
+# pdf2image converts PDF pages to pictures, pytesseract reads the text from them
 try:
     from pdf2image import convert_from_path
     import pytesseract
@@ -34,13 +37,14 @@ except ImportError:
     convert_from_path = None
     pytesseract = None
 
-# Import ICD-10 validator
+# Import the ICD-10 validation logic to cross-check extracted terms
+# Fallback path is provided if running outside the standard project root
 try:
     from src.icd10_validator import ICD10Validator
 except ImportError:
     from icd10_validator import ICD10Validator
 
-# Configure logging
+# Configure standard Python logging for tracking execution progress and anomalies
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -50,7 +54,10 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ExtractionResult:
-    """Data class for PDF extraction results"""
+    """
+    Data class defining the structure of the object returned for every processed PDF.
+    This acts as a structured record aggregating all extraction metadata and the content itself.
+    """
     filename: str
     filepath: str
     document_type: str
@@ -58,22 +65,22 @@ class ExtractionResult:
     text_length: int
     icd10_codes: List[str]
     num_codes: int
-    extraction_method: str  # 'native' or 'ocr'
+    extraction_method: str  # Tracks if data came from 'native' digital text or 'ocr' image scanning
     success: bool
     error_message: str = ""
 
 
 class HybridPDFExtractor:
     """
-    Extracts text from PDFs using hybrid approach:
-    1. First attempts native text extraction (fast)
-    2. Falls back to OCR if native extraction fails or returns garbage
+    Extracts text from PDFs using a two-tier hybrid approach:
+    1. First attempts native text extraction using pdfplumber (Fast, high fidelity but requires digital PDFs).
+    2. Falls back to Tesseract OCR if native extraction fails or returns scrambled text (Slow but works on scanned papers).
     
-    Includes:
-    - Retry logic for OCR failures
-    - Text quality validation
-    - Checkpoint saving for long batches
-    - Memory management
+    Includes robust operational features:
+    - Retry logic for intermittent OCR failures.
+    - Text quality validation heuristics.
+    - Checkpoint saving for long batch jobs (useful on Colab).
+    - Proactive memory management via garbage collection.
     """
     
     def __init__(
@@ -86,15 +93,15 @@ class HybridPDFExtractor:
         checkpoint_interval: int = 50
     ):
         """
-        Initialize the PDF extractor.
+        Initialize the Hybrid PDF extractor.
         
         Args:
-            ocr_dpi: DPI for PDF to image conversion
-            ocr_language: Tesseract language code
-            max_retries: Maximum retry attempts for OCR
-            min_text_length: Minimum characters for valid text
-            max_garbage_ratio: Maximum ratio of garbage characters allowed
-            checkpoint_interval: Save progress every N documents
+            ocr_dpi: Dots per inch for PDF to image conversion (affects OCR quality vs memory).
+            ocr_language: Tesseract language code (e.g., 'eng' for English).
+            max_retries: Maximum attempts to execute OCR if an error occurs.
+            min_text_length: Minimum character count required to consider a document successfully parsed.
+            max_garbage_ratio: Threshold ratio of special characters; if too high, text is treated as corrupt.
+            checkpoint_interval: Save intermediate progress to disk every N documents.
         """
         self.ocr_dpi = ocr_dpi
         self.ocr_language = ocr_language
@@ -103,13 +110,14 @@ class HybridPDFExtractor:
         self.max_garbage_ratio = max_garbage_ratio
         self.checkpoint_interval = checkpoint_interval
         
+        # Instantiate the validator used to pull diagnoses directly from the extracted text
         self.icd_validator = ICD10Validator()
         
-        # Check library availability
+        # Verify that all third-party libraries are accessible
         self._check_dependencies()
     
     def _check_dependencies(self):
-        """Check if required libraries are available"""
+        """Validates that necessary pip packages are installed, warning the user if any are missing."""
         if pdfplumber is None:
             logger.warning("pdfplumber not installed. Native extraction unavailable.")
         if convert_from_path is None or pytesseract is None:
@@ -117,31 +125,38 @@ class HybridPDFExtractor:
     
     def is_text_quality_acceptable(self, text: str) -> bool:
         """
-        Check if extracted text quality is acceptable.
+        Analyzes the extracted text to determine if it is readable or scrambled/corrupt.
+        This is crucial because some native PDF extractors output gibberish when handling 
+        custom fonts or badly encoded layers.
         
         Args:
-            text: Extracted text
+            text: The raw string extracted from the document.
             
         Returns:
-            True if text quality is acceptable
+            True if the text appears coherent based on heuristics, False otherwise.
         """
+        # Reject trivially short strings
         if not text or len(text) < self.min_text_length:
             return False
         
-        # Count garbage characters (non-alphanumeric, non-common punctuation)
+        # Define a whitelist of characters typical in medical English
         valid_chars = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,;:!?\'-\n\t/()')
+        
+        # Count characters outside the whitelist (garbage artifacts)
         garbage_count = sum(1 for c in text if c not in valid_chars)
         garbage_ratio = garbage_count / len(text)
         
+        # If the text is overwhelmingly garbage symbols, reject it
         if garbage_ratio > self.max_garbage_ratio:
             return False
         
-        # Check for reasonable word structure
+        # Split text into "words" based on spaces
         words = text.split()
         if len(words) < 10:
             return False
         
-        # Check average word length (garbage typically has very short/long "words")
+        # Check average word length to detect spacing issues
+        # (e.g. "C a n c e r" -> avg length 1; "Supercali..." -> very high average)
         avg_word_len = sum(len(w) for w in words) / len(words)
         if avg_word_len < 2 or avg_word_len > 20:
             return False
@@ -150,56 +165,64 @@ class HybridPDFExtractor:
     
     def extract_text_native(self, pdf_path: str) -> Tuple[str, bool]:
         """
-        Extract text using pdfplumber (native text extraction).
+        Extracts text purely natively by parsing the embedded text layer within the PDF.
+        This is the preferred method as it is exponentially faster and more accurate than OCR.
         
         Args:
-            pdf_path: Path to PDF file
+            pdf_path: Absolute or relative path to the PDF file.
             
         Returns:
-            Tuple of (extracted text, success boolean)
+            Tuple of (extracted string, boolean denoting operational success).
         """
         if pdfplumber is None:
             return "", False
         
         try:
             text_parts = []
+            # Open the PDF file safely using a context manager
             with pdfplumber.open(pdf_path) as pdf:
+                # Iterate through every page and pull its text
                 for page in pdf.pages:
                     page_text = page.extract_text()
                     if page_text:
                         text_parts.append(page_text)
             
+            # Combine all page texts, separated by newlines
             full_text = '\n'.join(text_parts).strip()
             return full_text, bool(full_text)
             
         except Exception as e:
+            # Native extraction can fail on protected or corrupted documents
             logger.debug(f"Native extraction failed for {pdf_path}: {e}")
             return "", False
     
     def extract_text_ocr(self, pdf_path: str) -> Tuple[str, bool]:
         """
-        Extract text using OCR (Tesseract).
+        Extracts text via Optical Character Recognition.
+        This visually "reads" the document like a human. It is slow and CPU intensive,
+        but necessary for PDFs formulated from scanned physical papers.
         
         Args:
-            pdf_path: Path to PDF file
+            pdf_path: Path to the PDF file.
             
         Returns:
-            Tuple of (extracted text, success boolean)
+            Tuple of (extracted string, boolean denoting operational success).
         """
         if convert_from_path is None or pytesseract is None:
             return "", False
         
+        # Retry loop to handle transient system errors (e.g. memory spike during image conversion)
         for attempt in range(self.max_retries):
             try:
-                # Convert PDF pages to images
+                # Step 1: Render the PDF pages into a list of JPEG image objects
                 images = convert_from_path(
                     pdf_path,
                     dpi=self.ocr_dpi,
                     fmt='jpeg'
                 )
                 
-                # OCR each page
                 text_parts = []
+                # Step 2: Feed each JPEG image into the Tesseract OCR engine
                 for image in images:
                     page_text = pytesseract.image_to_string(
                         image,
@@ -208,9 +231,10 @@ class HybridPDFExtractor:
                     if page_text:
                         text_parts.append(page_text)
                     
-                    # Free memory
+                    # Manually delete the image object immediately to prevent RAM bloat
                     del image
                 
+                # Cleanup the source images list and force garbage collection
                 del images
                 gc.collect()
                 
@@ -220,44 +244,47 @@ class HybridPDFExtractor:
             except Exception as e:
                 logger.warning(f"OCR attempt {attempt + 1}/{self.max_retries} failed: {e}")
                 if attempt < self.max_retries - 1:
-                    time.sleep(2)  # Wait before retry
+                    time.sleep(2)  # Pause execution briefly before the next retry
         
         return "", False
     
     def smart_extract(self, pdf_path: str) -> ExtractionResult:
         """
-        Smart extraction: try native first, OCR fallback.
+        The central extraction controller determining which extraction method to finalize.
+        Attempts native extraction; if it returns poor results or fails, defaults to OCR.
         
         Args:
-            pdf_path: Path to PDF file
+            pdf_path: Path to the PDF file.
             
         Returns:
-            ExtractionResult with extracted data
+            An ExtractionResult data object containing text, methodology, and identified codes.
         """
         filename = os.path.basename(pdf_path)
         
-        # Try native extraction first (faster)
+        # Phase 1: Attempt the fast native extraction
         text, native_success = self.extract_text_native(pdf_path)
         extraction_method = 'native'
         
-        # Check if native extraction produced quality text
+        # Evaluate if the native extraction yielded an acceptable outcome
         if not native_success or not self.is_text_quality_acceptable(text):
-            # Fall back to OCR
+            # Phase 2: If native fails or looks like garbage, pivot to the slow OCR engine
             ocr_text, ocr_success = self.extract_text_ocr(pdf_path)
             
+            # If OCR succeeds and appears to capture more data than native, adopt OCR
             if ocr_success and (not text or len(ocr_text) > len(text)):
                 text = ocr_text
                 extraction_method = 'ocr'
         
-        # Determine success
+        # Final success is ruled by whether valid text meeting length criteria was captured
         success = bool(text) and len(text) >= self.min_text_length
         
-        # Extract ICD-10 codes
+        # Feed the extracted text into the Validator to pull any hardcoded ICD-10 mentions
         icd_codes = self.icd_validator.extract_codes(text) if text else []
         
-        # Determine document type
+        # Guess the specific type of medical form based on filename and header text
         doc_type = self._determine_document_type(text, filename)
         
+        # Package and return all findings into the standard data class
         return ExtractionResult(
             filename=filename,
             filepath=str(pdf_path),
@@ -272,10 +299,14 @@ class HybridPDFExtractor:
         )
     
     def _determine_document_type(self, text: str, filename: str) -> str:
-        """Determine document type from content and filename"""
+        """
+        Applies rudimentary rule-based heuristics to classify the medical document type.
+        Focuses on common form numbers or structural titles.
+        """
         if not text:
             return 'Unknown'
         
+        # Look at the first 2000 characters which generally constitute headers/titles
         text_upper = text[:2000].upper()
         filename_upper = filename.upper()
         
@@ -300,18 +331,19 @@ class HybridPDFExtractor:
         resume: bool = True
     ) -> pd.DataFrame:
         """
-        Process all PDFs in a directory.
+        Orchestrates bulk processing of an entire directory containing PDF files.
+        Includes built-in checkpointing so jobs interuppted mid-way do not lose entire progress.
         
         Args:
-            directory: Path to directory containing PDFs
-            output_csv: Path to save results CSV
-            checkpoint_file: Path for checkpoint saves (optional)
-            resume: If True, resume from checkpoint if exists
+            directory: Directory string path to search for PDFs.
+            output_csv: File path detailing where to save the final compiled CSV of all texts.
+            checkpoint_file: File path detailing where to save intermediate progress.
+            resume: If True, evaluates the checkpoint_file and skips already processed PDFs.
             
         Returns:
-            DataFrame with extraction results
+            A Pandas DataFrame containing all extraction results.
         """
-        # Find all PDF files
+        # Recursively search the directory for anything ending in .pdf
         pdf_files = list(Path(directory).rglob('*.pdf'))
         logger.info(f"Found {len(pdf_files)} PDF files in {directory}")
         
@@ -319,30 +351,35 @@ class HybridPDFExtractor:
             logger.warning("No PDF files found!")
             return pd.DataFrame()
         
-        # Load checkpoint if resuming
         processed_files = set()
         results = []
         
+        # If resuming, load the checkpoint CSV and prepopulate results list and processed set
         if resume and checkpoint_file and os.path.exists(checkpoint_file):
             checkpoint_df = pd.read_csv(checkpoint_file)
             processed_files = set(checkpoint_df['filename'].tolist())
             results = checkpoint_df.to_dict('records')
             logger.info(f"Resuming from checkpoint: {len(processed_files)} already processed")
         
-        # Filter remaining files
+        # Filter down the list of PDFs to only include those not already in the processed set
         remaining_files = [f for f in pdf_files if os.path.basename(f) not in processed_files]
         logger.info(f"Processing {len(remaining_files)} remaining files...")
         
-        # Process with progress bar
+        # Iterate over remaining files displaying a visual progress bar (tqdm)
         batch_count = 0
         for pdf_path in tqdm(remaining_files, desc="Extracting PDFs"):
             try:
+                # Trigger extraction logic for single file
                 result = self.smart_extract(str(pdf_path))
+                
+                # Convert Result Object to Dictionary for Pandas conversion
                 result_dict = asdict(result)
-                result_dict['icd10_codes'] = json.dumps(result.icd10_codes)  # Serialize list
+                # Serialize list into a JSON string since CSV cells don't natively support lists
+                result_dict['icd10_codes'] = json.dumps(result.icd10_codes)  
                 results.append(result_dict)
                 
             except Exception as e:
+                # Catch severe operational crashes and log them gracefully
                 logger.error(f"Failed to process {pdf_path}: {e}")
                 results.append({
                     'filename': os.path.basename(pdf_path),
@@ -359,39 +396,43 @@ class HybridPDFExtractor:
             
             batch_count += 1
             
-            # Save checkpoint
+            # Periodically write current progress to disk
             if batch_count % self.checkpoint_interval == 0:
                 df = pd.DataFrame(results)
                 if checkpoint_file:
                     df.to_csv(checkpoint_file, index=False)
                 logger.info(f"Checkpoint saved: {len(results)} documents processed")
                 
-                # Memory cleanup
+                # Force memory flush of dangling Python objects
                 gc.collect()
         
-        # Final save
+        # Produce the conclusive DataFrame and export it as CSV
         df = pd.DataFrame(results)
         df.to_csv(output_csv, index=False)
         logger.info(f"Final results saved to {output_csv}")
         
-        # Log statistics
+        # Post-operation summary printout
         self._log_statistics(df)
         
         return df
     
     def _log_statistics(self, df: pd.DataFrame):
-        """Log extraction statistics"""
+        """
+        Parses the final results DataFrame and prints out aggregate statistics 
+        regarding the quality and outcome of the batch extraction job.
+        """
         total = len(df)
         success = df['success'].sum() if 'success' in df.columns else 0
         native = (df['extraction_method'] == 'native').sum() if 'extraction_method' in df.columns else 0
         ocr = (df['extraction_method'] == 'ocr').sum() if 'extraction_method' in df.columns else 0
         
-        # Count total ICD codes
+        # Aggregate all discovered ICD-10 codes to calculate density/diversity 
         total_codes = 0
         all_codes = []
         if 'icd10_codes' in df.columns:
             for codes_str in df['icd10_codes']:
                 try:
+                    # Deserialize JSON string back to a Python List
                     codes = json.loads(codes_str) if isinstance(codes_str, str) else codes_str
                     total_codes += len(codes)
                     all_codes.extend(codes)
@@ -422,18 +463,20 @@ def process_pdfs_batch(
     checkpoint_interval: int = 50
 ) -> pd.DataFrame:
     """
-    Convenience function to process a batch of PDFs.
+    A simplified functional wrapper exposing the Extractor class.
+    Streamlines usage in Jupyter Notebooks/Google Colab so only a single function call is needed.
     
     Args:
-        directory: Path to PDF directory
-        output_csv: Output CSV path
-        checkpoint_interval: Save every N documents
+        directory: Target folder path.
+        output_csv: Final output CSV path.
+        checkpoint_interval: Save frequency.
         
     Returns:
-        DataFrame with results
+        DataFrame holding all results.
     """
     extractor = HybridPDFExtractor(checkpoint_interval=checkpoint_interval)
     
+    # Automatically generate a checkpoint file naming scheme based on output filename
     checkpoint = output_csv.replace('.csv', '_checkpoint.csv')
     return extractor.process_directory(
         directory=directory,
@@ -444,9 +487,10 @@ def process_pdfs_batch(
 
 
 # ============================================
-# Testing
+# Local Module Testing logic
 # ============================================
 if __name__ == "__main__":
+    # Provides straightforward command line documentation if the script is run directly
     print("PDF Extractor Module")
     print("=" * 50)
     print("This module provides hybrid PDF text extraction.")
