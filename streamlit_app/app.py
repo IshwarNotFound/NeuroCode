@@ -85,29 +85,46 @@ def run_analysis(text):
         st.error(f"⚠️ {error}")
         return []
     
-    # Input validation
     is_valid, error, sanitized_text = InputValidator.validate_text_input(text)
     if not is_valid:
         st.error(f"⚠️ {error}")
         return []
     
+    # Terminal processing sequence — builds anticipation
+    terminal = st.empty()
+    
+    def show_terminal_line(text_line, status=""):
+        prefix = f'<span style="color:#10b981;">[OK]</span> ' if status == "ok" else '<span style="color:#fff;">&gt;_</span> '
+        terminal.markdown(f"""
+        <div style="background:#0a0a0a; border: 1px solid #1a1a1a; border-radius:10px; padding:1.25rem 1.5rem;">
+            <div style="font-family:'JetBrains Mono', monospace; font-size:0.85rem; color:#888; line-height:1.8;">
+                {prefix}{text_line}<span style="animation: terminalBlink 1s infinite;">█</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    steps = [
+        "Tokenizing clinical entities...",
+        "Extracting anatomical biomarkers...",
+        "Applying attention mechanism...",
+        "Mapping to ICD-10 latent space...",
+        "Calculating confidence thresholds...",
+    ]
+    
+    show_terminal_line("Initializing neural network...")
+    time.sleep(0.4)
+    
+    for step_text in steps:
+        show_terminal_line(step_text, status="ok")
+        time.sleep(random.uniform(0.25, 0.6))
+    
+    # Actual model inference
     try:
-        st.info("📡 Loading model...")
         from src.model_inference import predict_icd10
-        
-        st.info(f"📝 Analyzing {len(sanitized_text)} characters of text...")
-        
-        # Get predictions using sanitized text
         predictions = predict_icd10(sanitized_text, top_k=50)
         
-        st.success(f"✅ Model returned {len(predictions)} predictions!")
+        terminal.empty()  # Clear the terminal
         
-        # Show top 3 confidence scores for debugging
-        if predictions:
-            top_3_conf = [f"{p['confidence']:.3f}" for p in predictions[:3]]
-            st.info(f"Top 3 confidences: {', '.join(top_3_conf)}")
-        
-        # Add evidence (using original text for display, sanitized)
         words = sanitized_text.split()
         for pred in predictions:
             if len(words) > 3:
@@ -116,16 +133,11 @@ def run_analysis(text):
             else:
                 pred['evidence'] = "Clinical pattern match"
 
-
-        # Return top 10 regardless of confidence
-        result = predictions[:10]
-        st.success(f"📊 Returning {len(result)} codes to display")
-        return result
+        return predictions[:10]
         
     except Exception as e:
-        st.error(f"❌ Analysis Error: {str(e)}")
-        import traceback
-        st.code(traceback.format_exc())
+        terminal.empty()
+        st.error(f"Analysis failed: {str(e)}")
         return None
 
 # ==================== WIZARD ====================

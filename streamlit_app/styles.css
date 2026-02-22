@@ -7,7 +7,7 @@
    Complete Streamlit override — nothing left unstyled.
 ========================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 /* ========== 1. THE VOID — Global Background ========== */
 :root {
@@ -51,6 +51,13 @@ footer,
     height: 0 !important;
 }
 
+/* FIX: Eliminate Streamlit's massive default top gap */
+div[data-testid="stBlockContainer"] {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+    max-width: 780px !important;
+}
+
 /* ========== 2. ANIMATIONS — The "Breathing" Effect ========== */
 @keyframes smoothRise {
     0% {
@@ -85,6 +92,18 @@ footer,
 
     to {
         opacity: 1;
+    }
+}
+
+@keyframes terminalBlink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
     }
 }
 
