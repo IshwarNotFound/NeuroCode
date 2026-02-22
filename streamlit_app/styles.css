@@ -1,57 +1,80 @@
-/* 
-=========================================================
-   NEUROCODE — Premium Medical AI Interface
-   Deep Space + Electric Emerald Theme
-   Clean, Focused, Love-at-First-Sight Design
-=========================================================
-*/
+/* =========================================================
+   NEUROCODE — "NEURAL VOID" THEME
+   Absolute Minimalism · Cognitive Flow · Clinical Precision
+   
+   Pure black void background, stark white typography,
+   smooth cubic-bezier animations, glass-like inputs.
+   Complete Streamlit override — nothing left unstyled.
+========================================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* ========== CSS VARIABLES — DEEP SPACE + ELECTRIC EMERALD ========== */
+/* ========== 1. THE VOID — Global Background ========== */
 :root {
-    /* Deep space backgrounds */
-    --bg-primary: #07090f;
-    --bg-secondary: #0c1018;
-    --bg-card: #111620;
-    --bg-elevated: #161d2a;
-
-    /* Crisp text */
-    --text-primary: #f0f2f5;
-    --text-secondary: #a0aec0;
-    --text-muted: #5a6577;
-
-    /* Electric accents */
-    --accent-emerald: #00D68F;
-    --accent-cyan: #00B4D8;
-    --accent-purple: #7C3AED;
-
-    /* Gradients */
-    --gradient-main: linear-gradient(135deg, #00D68F 0%, #00B4D8 100%);
-    --gradient-glow: linear-gradient(135deg, rgba(0, 214, 143, 0.4), rgba(0, 180, 216, 0.4));
-    --gradient-card: linear-gradient(145deg, rgba(22, 29, 42, 0.8) 0%, rgba(12, 16, 24, 0.9) 100%);
-
-    /* Borders */
-    --border-subtle: rgba(255, 255, 255, 0.06);
-    --border-active: rgba(0, 214, 143, 0.5);
-
-    /* Shadows */
-    --shadow-glow: 0 0 60px rgba(0, 214, 143, 0.15);
-    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
-    --shadow-elevated: 0 12px 48px rgba(0, 0, 0, 0.6);
+    --void: #050505;
+    --void-surface: #0a0a0a;
+    --void-elevated: #111111;
+    --void-border: #1a1a1a;
+    --void-border-hover: #333333;
+    --text-primary: #ffffff;
+    --text-secondary: #888888;
+    --text-muted: #555555;
+    --white-glow: rgba(255, 255, 255, 0.06);
+    --white-glow-strong: rgba(255, 255, 255, 0.12);
 }
 
-/* ========== KEYFRAME ANIMATIONS ========== */
-@keyframes fadeInUp {
-    from {
+* {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    box-sizing: border-box;
+}
+
+html,
+body,
+[data-testid="stAppViewContainer"],
+.stApp {
+    background-color: var(--void) !important;
+    background-image:
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.02) 0%, transparent 50%),
+        radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.01) 0%, transparent 50%) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Hide default Streamlit chrome — total immersion */
+header,
+footer,
+#MainMenu,
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"] {
+    visibility: hidden !important;
+    display: none !important;
+    height: 0 !important;
+}
+
+/* ========== 2. ANIMATIONS — The "Breathing" Effect ========== */
+@keyframes smoothRise {
+    0% {
         opacity: 0;
-        transform: translateY(24px);
+        transform: translateY(20px);
+        filter: blur(5px);
     }
 
-    to {
+    100% {
         opacity: 1;
         transform: translateY(0);
+        filter: blur(0);
+    }
+}
+
+@keyframes slowPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.08);
+    }
+
+    50% {
+        box-shadow: 0 0 25px 0 rgba(255, 255, 255, 0.04);
     }
 }
 
@@ -65,472 +88,222 @@
     }
 }
 
-@keyframes slideInLeft {
-    from {
-        opacity: 0;
-        transform: translateX(-30px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes gradientShift {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    50% {
-        background-position: 100% 50%;
-    }
-
-    100% {
-        background-position: 0% 50%;
-    }
-}
-
-@keyframes shimmer {
-    0% {
-        background-position: -200% center;
-    }
-
-    100% {
-        background-position: 200% center;
-    }
-}
-
-@keyframes glowPulse {
+@keyframes subtleFloat {
 
     0%,
     100% {
-        opacity: 0.5;
-        transform: translate(-50%, -50%) scale(1);
-    }
-
-    50% {
-        opacity: 0.8;
-        transform: translate(-50%, -50%) scale(1.1);
-    }
-}
-
-@keyframes borderGlow {
-
-    0%,
-    100% {
-        border-color: rgba(0, 214, 143, 0.15);
-    }
-
-    50% {
-        border-color: rgba(0, 214, 143, 0.35);
-    }
-}
-
-@keyframes bgDrift {
-    0% {
-        background-position: 0% 0%;
-    }
-
-    50% {
-        background-position: 100% 100%;
-    }
-
-    100% {
-        background-position: 0% 0%;
-    }
-}
-
-@keyframes contentReveal {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-        filter: blur(4px);
-    }
-
-    to {
-        opacity: 1;
         transform: translateY(0);
-        filter: blur(0);
+    }
+
+    50% {
+        transform: translateY(-3px);
     }
 }
 
-@keyframes smoothFadeSlide {
-    from {
-        opacity: 0;
-        transform: translateY(16px) scale(0.99);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* ========== GLOBAL RESET ========== */
-* {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-    box-sizing: border-box;
-}
-
-button,
-input,
-textarea,
-select,
-a,
-[role="button"] {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-html,
-body,
-[data-testid="stAppViewContainer"],
-.stApp {
-    background: var(--bg-primary) !important;
-    color: var(--text-primary) !important;
-    scroll-behavior: smooth;
-}
-
-/* Hide default Streamlit chrome */
-#MainMenu,
-footer,
-header,
-[data-testid="stToolbar"] {
-    visibility: hidden !important;
-    display: none !important;
-}
-
-/* ========== AMBIENT BACKGROUND ========== */
-.stApp::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background:
-        radial-gradient(ellipse at 25% 20%, rgba(0, 214, 143, 0.06) 0%, transparent 50%),
-        radial-gradient(ellipse at 75% 70%, rgba(0, 180, 216, 0.05) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 50%, rgba(124, 58, 237, 0.03) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-    animation: bgDrift 25s ease-in-out infinite;
-    background-size: 200% 200%;
-}
-
-.stApp::after {
-    content: '';
-    position: fixed;
-    width: 500px;
-    height: 500px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(0, 214, 143, 0.08) 0%, transparent 65%);
-    top: -10%;
-    right: -5%;
-    pointer-events: none;
-    z-index: 0;
-    filter: blur(60px);
-    animation: glowPulse 10s ease-in-out infinite;
-}
-
-/* ========== MAIN CONTAINER ========== */
+/* ========== 3. MAIN CONTAINER ========== */
 .main .block-container {
-    padding: 2.5rem 3.5rem !important;
-    max-width: 900px !important;
-    background: rgba(11, 14, 22, 0.85) !important;
-    backdrop-filter: blur(24px) !important;
-    border-radius: 28px !important;
-    border: 1px solid var(--border-subtle) !important;
-    box-shadow: var(--shadow-elevated) !important;
-    margin: 2rem auto !important;
-    animation: fadeInUp 0.7s ease-out;
-    position: relative;
-    z-index: 1;
-}
-
-/* ========== TYPOGRAPHY ========== */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    color: var(--text-primary) !important;
-    font-weight: 700 !important;
+    padding: 3rem 3rem !important;
+    max-width: 800px !important;
+    margin: 0 auto !important;
     animation: fadeIn 0.5s ease-out;
 }
 
-h1 {
-    font-size: 3rem !important;
-    font-weight: 900 !important;
-    background: var(--gradient-main) !important;
-    background-size: 200% 200% !important;
-    -webkit-background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    background-clip: text !important;
-    animation: gradientShift 4s ease infinite, fadeInUp 0.8s ease-out !important;
-    text-align: center !important;
-    margin-bottom: 0.5rem !important;
-}
-
-p,
-span,
-div,
-label {
-    color: var(--text-secondary) !important;
-}
-
-/* ========== HERO SECTION ========== */
-.hero-wrapper {
-    position: relative;
+/* ========== 4. HERO — Pure Typographic Authority ========== */
+.hero-container {
     text-align: center;
-    padding: 3rem 0 1.5rem;
-    margin-bottom: 0.5rem;
-    overflow: hidden;
-}
-
-.hero-glow {
-    position: absolute;
-    top: 45%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 500px;
-    height: 200px;
-    background: radial-gradient(ellipse, rgba(0, 214, 143, 0.15) 0%, rgba(0, 180, 216, 0.08) 40%, transparent 70%);
-    filter: blur(50px);
-    pointer-events: none;
-    z-index: 0;
-    animation: glowPulse 6s ease-in-out infinite;
+    margin-top: 4vh;
+    margin-bottom: 2.5rem;
+    animation: smoothRise 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .hero-title {
-    position: relative;
-    z-index: 1;
-    font-size: 4rem !important;
-    font-weight: 900 !important;
-    margin-bottom: 0.3rem !important;
-    background: linear-gradient(135deg, #00D68F 0%, #00B4D8 60%, #7C3AED 100%) !important;
-    background-size: 200% 200% !important;
-    -webkit-background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    background-clip: text !important;
-    animation: gradientShift 6s ease infinite, fadeInUp 0.8s ease-out !important;
-    letter-spacing: -2px !important;
-    line-height: 1.05 !important;
+    font-size: 3.5rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.04em !important;
+    color: #ffffff !important;
+    margin-bottom: 0.5rem !important;
+    line-height: 1.1 !important;
+    -webkit-text-fill-color: #ffffff !important;
+    background: none !important;
 }
 
 .hero-subtitle {
-    position: relative;
-    z-index: 1;
-    font-size: 1.15rem !important;
-    color: var(--text-secondary) !important;
+    font-size: 1.1rem !important;
     font-weight: 400 !important;
-    letter-spacing: 0.5px !important;
-    margin-bottom: 0.4rem !important;
-    animation: contentReveal 0.8s ease-out 0.2s both;
-}
-
-.hero-tagline {
-    position: relative;
-    z-index: 1;
-    font-size: 1rem !important;
-    color: var(--text-muted) !important;
-    font-weight: 400 !important;
-    margin-bottom: 0 !important;
-    animation: contentReveal 0.8s ease-out 0.4s both;
-}
-
-/* ========== PRIMARY ACTION CARD ========== */
-.primary-card {
-    margin-bottom: 0.5rem;
-    animation: smoothFadeSlide 0.6s ease-out 0.5s both;
-}
-
-.primary-card-label {
-    font-size: 0.95rem !important;
-    font-weight: 600 !important;
-    color: var(--text-primary) !important;
-    margin-bottom: 0.5rem;
-    letter-spacing: 0.3px;
-}
-
-/* ========== OR DIVIDER ========== */
-.or-divider {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin: 1.5rem 0;
-    animation: contentReveal 0.6s ease-out 0.7s both;
-}
-
-.or-line {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
-}
-
-.or-text {
-    font-size: 0.8rem !important;
-    color: var(--text-muted) !important;
-    text-transform: lowercase;
-    font-weight: 500;
-    letter-spacing: 1px;
-}
-
-/* ========== SECONDARY OPTION CARDS ========== */
-.secondary-card {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.5rem;
-    background: rgba(22, 29, 42, 0.5);
-    border: 1px solid var(--border-subtle);
-    border-radius: 14px;
-    animation: smoothFadeSlide 0.6s ease-out 0.8s both;
-    transition: all 0.3s ease;
-}
-
-.secondary-card:hover {
-    border-color: rgba(0, 214, 143, 0.2);
-    background: rgba(22, 29, 42, 0.8);
-}
-
-.secondary-icon {
-    font-size: 1.3rem;
-    line-height: 1;
-}
-
-.secondary-label {
-    font-size: 0.9rem !important;
     color: var(--text-secondary) !important;
-    font-weight: 500;
+    letter-spacing: 0.02em !important;
+    margin: 0 !important;
 }
 
-/* ========== BUTTONS ========== */
-.stButton>button {
-    background: var(--gradient-main) !important;
-    background-size: 200% 200% !important;
-    color: #07090f !important;
-    border: none !important;
-    border-radius: 14px !important;
-    padding: 0.85rem 2rem !important;
-    font-weight: 700 !important;
-    font-size: 0.95rem !important;
-    letter-spacing: 0.5px !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 4px 20px rgba(0, 214, 143, 0.25) !important;
-    animation: fadeInUp 0.5s ease-out, gradientShift 4s ease infinite !important;
-    position: relative !important;
-    overflow: hidden !important;
-}
-
-.stButton>button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
-}
-
-.stButton>button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 30px rgba(0, 214, 143, 0.35), 0 0 40px rgba(0, 180, 216, 0.15) !important;
-}
-
-.stButton>button:hover::before {
-    left: 100%;
-}
-
-.stButton>button:active {
-    transform: translateY(0) !important;
-}
-
-/* Secondary buttons */
-button[kind="secondary"],
-.stButton>button[data-baseweb="button"][kind="secondary"] {
-    background: transparent !important;
-    border: 1px solid rgba(0, 214, 143, 0.3) !important;
-    color: var(--accent-emerald) !important;
-    box-shadow: none !important;
-}
-
-button[kind="secondary"]:hover {
-    background: rgba(0, 214, 143, 0.08) !important;
-    border-color: var(--accent-emerald) !important;
-    box-shadow: 0 0 20px rgba(0, 214, 143, 0.15) !important;
-}
-
-/* ========== TEXT INPUTS ========== */
-.stTextInput input,
+/* ========== 5. THE SCANNER — Text Input (Glass Terminal) ========== */
 .stTextArea textarea {
-    background: var(--bg-elevated) !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 14px !important;
-    padding: 1rem 1.25rem !important;
-    color: var(--text-primary) !important;
-    font-size: 0.95rem !important;
-    transition: all 0.3s ease !important;
-    animation: fadeIn 0.4s ease-out;
+    background-color: var(--void-surface) !important;
+    border: 1px solid var(--void-border) !important;
+    color: #e5e5e5 !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+    font-size: 1rem !important;
+    line-height: 1.7 !important;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    animation: smoothRise 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    resize: vertical !important;
 }
 
-.stTextInput input:focus,
 .stTextArea textarea:focus {
-    border-color: var(--accent-emerald) !important;
-    box-shadow: 0 0 0 3px rgba(0, 214, 143, 0.1), 0 0 20px rgba(0, 214, 143, 0.08) !important;
+    border-color: #ffffff !important;
+    background-color: #000000 !important;
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.04) !important;
     outline: none !important;
 }
 
-.stTextInput input::placeholder,
 .stTextArea textarea::placeholder {
     color: var(--text-muted) !important;
-    opacity: 0.8 !important;
+    opacity: 1 !important;
 }
 
-.stTextArea textarea {
-    min-height: 120px !important;
-    background: var(--bg-card) !important;
-    line-height: 1.6 !important;
+.stTextInput input {
+    background-color: var(--void-surface) !important;
+    border: 1px solid var(--void-border) !important;
+    color: #e5e5e5 !important;
+    border-radius: 10px !important;
+    padding: 0.85rem 1rem !important;
+    font-size: 0.95rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.stTextInput input:focus {
+    border-color: #ffffff !important;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.04) !important;
 }
 
 .stTextInput label,
 .stTextArea label,
 .stSelectbox label {
     color: var(--text-secondary) !important;
-    font-weight: 600 !important;
-    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
 }
 
-/* ========== SELECTBOX / DROPDOWN ========== */
+/* ========== 6. BUTTONS — Stark White on Void ========== */
+.stButton>button {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    padding: 0.8rem 2rem !important;
+    letter-spacing: 0.01em !important;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    animation: smoothRise 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    cursor: pointer !important;
+    position: relative !important;
+}
+
+.stButton>button:hover {
+    transform: translateY(-1px) scale(1.005) !important;
+    box-shadow: 0 8px 30px rgba(255, 255, 255, 0.12) !important;
+    background-color: #f0f0f0 !important;
+}
+
+.stButton>button:active {
+    transform: translateY(0) scale(1) !important;
+}
+
+/* Secondary / ghost buttons */
+button[kind="secondary"],
+.stButton>button[data-baseweb="button"][kind="secondary"] {
+    background-color: transparent !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--void-border-hover) !important;
+    box-shadow: none !important;
+}
+
+button[kind="secondary"]:hover {
+    color: #ffffff !important;
+    border-color: #666 !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* ========== 7. GHOST CARDS — The Subtle Alternatives ========== */
+.ghost-card {
+    background: transparent;
+    border: 1px solid var(--void-border);
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: smoothRise 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ghost-card:hover {
+    border-color: var(--void-border-hover);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.02);
+    transform: translateY(-2px);
+}
+
+.ghost-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* ========== 8. OR DIVIDER — Minimal ========== */
+.minimal-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    margin: 2rem 0;
+    animation: smoothRise 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.minimal-divider::before,
+.minimal-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--void-border);
+}
+
+.minimal-divider:not(:empty)::before {
+    margin-right: 1.2em;
+}
+
+.minimal-divider:not(:empty)::after {
+    margin-left: 1.2em;
+}
+
+/* ========== 9. SELECTBOX / DROPDOWN ========== */
 .stSelectbox>div>div {
-    background: var(--bg-elevated) !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 14px !important;
+    background: var(--void-surface) !important;
+    border: 1px solid var(--void-border) !important;
+    border-radius: 10px !important;
     color: var(--text-primary) !important;
     transition: all 0.3s ease !important;
 }
 
 .stSelectbox>div>div:hover {
-    border-color: rgba(0, 214, 143, 0.3) !important;
+    border-color: var(--void-border-hover) !important;
 }
 
 [data-baseweb="select"] {
-    background: var(--bg-elevated) !important;
+    background: var(--void-surface) !important;
 }
 
 [data-baseweb="select"]>div {
-    background: var(--bg-elevated) !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 14px !important;
-    min-height: 48px !important;
+    background: var(--void-surface) !important;
+    border: 1px solid var(--void-border) !important;
+    border-radius: 10px !important;
+    min-height: 46px !important;
     padding: 0 1rem !important;
 }
 
 [data-baseweb="select"]>div:hover {
-    border-color: rgba(0, 214, 143, 0.3) !important;
+    border-color: var(--void-border-hover) !important;
 }
 
 [data-baseweb="select"] span,
@@ -550,10 +323,10 @@ button[kind="secondary"]:hover {
 [role="listbox"],
 [data-baseweb="menu"],
 [data-baseweb="popover"] {
-    background: var(--bg-elevated) !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 14px !important;
-    box-shadow: var(--shadow-elevated), 0 0 30px rgba(0, 214, 143, 0.08) !important;
+    background: var(--void-elevated) !important;
+    border: 1px solid var(--void-border) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6) !important;
     overflow: hidden !important;
     animation: fadeIn 0.15s ease-out !important;
 }
@@ -561,39 +334,37 @@ button[kind="secondary"]:hover {
 [role="option"],
 [data-baseweb="menu"] li,
 [data-baseweb="menu"] div[role="option"] {
-    background: var(--bg-elevated) !important;
+    background: var(--void-elevated) !important;
     color: var(--text-primary) !important;
-    padding: 0.85rem 1.25rem !important;
+    padding: 0.8rem 1.2rem !important;
     font-size: 0.95rem !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.15s ease !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
 }
 
 [role="option"]:hover,
 [data-baseweb="menu"] li:hover,
 [role="option"][aria-selected="true"] {
-    background: linear-gradient(135deg, rgba(0, 214, 143, 0.1) 0%, rgba(0, 180, 216, 0.05) 100%) !important;
-    color: var(--text-primary) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
 }
 
 [role="option"]:last-child {
     border-bottom: none !important;
 }
 
-/* ========== FILE UPLOADER ========== */
+/* ========== 10. FILE UPLOADER ========== */
 [data-testid="stFileUploader"] {
-    background: var(--bg-card) !important;
-    border: 2px dashed rgba(0, 214, 143, 0.2) !important;
-    border-radius: 16px !important;
-    padding: 1.5rem !important;
+    background: var(--void-surface) !important;
+    border: 1px dashed var(--void-border) !important;
+    border-radius: 12px !important;
+    padding: 1.25rem !important;
     transition: all 0.3s ease !important;
-    animation: fadeIn 0.5s ease-out;
 }
 
 [data-testid="stFileUploader"]:hover {
-    border-color: rgba(0, 214, 143, 0.4) !important;
-    background: rgba(0, 214, 143, 0.03) !important;
-    box-shadow: 0 0 20px rgba(0, 214, 143, 0.08) !important;
+    border-color: var(--void-border-hover) !important;
+    background: rgba(255, 255, 255, 0.01) !important;
 }
 
 [data-testid="stFileUploader"] section {
@@ -601,46 +372,49 @@ button[kind="secondary"]:hover {
 }
 
 [data-testid="stFileUploader"] button {
-    background: var(--gradient-main) !important;
-    color: #07090f !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
 }
 
-/* ========== ALERTS ========== */
+[data-testid="stFileUploader"] small {
+    color: var(--text-muted) !important;
+}
+
+/* ========== 11. ALERTS ========== */
 .stAlert {
-    border-radius: 14px !important;
+    border-radius: 10px !important;
     padding: 1rem 1.25rem !important;
     margin: 0.75rem 0 !important;
     font-size: 0.9rem !important;
-    border-left: 4px solid !important;
-    animation: slideInLeft 0.3s ease-out !important;
+    border-left: 3px solid !important;
+    animation: smoothRise 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
     backdrop-filter: blur(10px) !important;
 }
 
-div[data-baseweb="notification"][data-testid="stAlert-info"],
-.stInfo,
-[data-testid="stNotification"] {
-    background: rgba(0, 180, 216, 0.08) !important;
-    border-left-color: var(--accent-cyan) !important;
+.stInfo {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-left-color: #555 !important;
 }
 
 .stInfo p,
-.stInfo span,
-[data-testid="stNotification"] p {
-    color: #90e0ef !important;
+.stInfo span {
+    color: #aaa !important;
 }
 
 .stSuccess {
-    background: rgba(0, 214, 143, 0.08) !important;
-    border-left-color: var(--accent-emerald) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-left-color: #ffffff !important;
 }
 
 .stSuccess p,
 .stSuccess span {
-    color: #6fffc4 !important;
+    color: #ddd !important;
 }
 
 .stWarning {
-    background: rgba(245, 158, 11, 0.08) !important;
+    background: rgba(245, 158, 11, 0.06) !important;
     border-left-color: #f59e0b !important;
 }
 
@@ -650,7 +424,7 @@ div[data-baseweb="notification"][data-testid="stAlert-info"],
 }
 
 .stError {
-    background: rgba(239, 68, 68, 0.08) !important;
+    background: rgba(239, 68, 68, 0.06) !important;
     border-left-color: #ef4444 !important;
 }
 
@@ -659,11 +433,11 @@ div[data-baseweb="notification"][data-testid="stAlert-info"],
     color: #fca5a5 !important;
 }
 
-/* ========== EXPANDER ========== */
+/* ========== 12. EXPANDER ========== */
 .streamlit-expanderHeader {
-    background: var(--bg-elevated) !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 14px !important;
+    background: var(--void-surface) !important;
+    border: 1px solid var(--void-border) !important;
+    border-radius: 10px !important;
     color: var(--text-primary) !important;
     font-weight: 600 !important;
     padding: 1rem 1.25rem !important;
@@ -671,64 +445,56 @@ div[data-baseweb="notification"][data-testid="stAlert-info"],
 }
 
 .streamlit-expanderHeader:hover {
-    border-color: rgba(0, 214, 143, 0.2) !important;
-    box-shadow: 0 0 15px rgba(0, 214, 143, 0.08) !important;
+    border-color: var(--void-border-hover) !important;
 }
 
 .streamlit-expanderContent {
-    background: var(--bg-secondary) !important;
-    border: 1px solid var(--border-subtle) !important;
+    background: var(--void) !important;
+    border: 1px solid var(--void-border) !important;
     border-top: none !important;
-    border-radius: 0 0 14px 14px !important;
+    border-radius: 0 0 10px 10px !important;
     padding: 1.25rem !important;
     animation: fadeIn 0.3s ease-out !important;
 }
 
 .streamlit-expanderContent textarea {
-    background: var(--bg-primary) !important;
+    background: var(--void) !important;
     color: var(--text-primary) !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 10px !important;
+    border: 1px solid var(--void-border) !important;
 }
 
-/* ========== DIVIDER ========== */
+/* ========== 13. DIVIDER ========== */
 hr {
     border: none !important;
     height: 1px !important;
-    background: linear-gradient(90deg, transparent, rgba(0, 214, 143, 0.2), rgba(0, 180, 216, 0.15), transparent) !important;
+    background: var(--void-border) !important;
     margin: 2rem 0 !important;
-    animation: shimmer 3s ease infinite !important;
-    background-size: 200% 100% !important;
 }
 
-/* ========== PROGRESS / SPINNER ========== */
+/* ========== 14. SPINNER ========== */
 .stSpinner>div {
-    border-top-color: var(--accent-emerald) !important;
-    border-width: 3px !important;
+    border-top-color: #ffffff !important;
+    border-width: 2px !important;
 }
 
 .stProgress>div>div>div>div {
-    background: var(--gradient-main) !important;
-    background-size: 200% 100% !important;
-    animation: gradientShift 2s ease infinite !important;
+    background: #ffffff !important;
 }
 
-/* ========== CODE BLOCKS ========== */
+/* ========== 15. CODE ========== */
 code {
-    background: var(--bg-card) !important;
-    color: var(--accent-emerald) !important;
+    background: var(--void-surface) !important;
+    color: #e5e5e5 !important;
     padding: 0.2rem 0.5rem !important;
-    border-radius: 6px !important;
-    font-family: 'JetBrains Mono', monospace !important;
+    border-radius: 4px !important;
     font-size: 0.85rem !important;
 }
 
 pre {
-    background: var(--bg-card) !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 14px !important;
+    background: var(--void-surface) !important;
+    border: 1px solid var(--void-border) !important;
+    border-radius: 10px !important;
     padding: 1.25rem !important;
-    animation: fadeIn 0.4s ease-out;
 }
 
 pre code {
@@ -736,10 +502,28 @@ pre code {
     padding: 0 !important;
 }
 
-/* ========== COLUMNS ========== */
+/* ========== 16. SCROLLBAR ========== */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--void-border-hover);
+    border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* ========== 17. COLUMNS ========== */
 [data-testid="column"] {
-    padding: 0 0.5rem !important;
-    animation: fadeInUp 0.5s ease-out backwards;
+    animation: smoothRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 [data-testid="column"]:nth-child(1) {
@@ -750,63 +534,38 @@ pre code {
     animation-delay: 0.1s;
 }
 
-[data-testid="column"]:nth-child(3) {
-    animation-delay: 0.15s;
+/* ========== 18. MISC OVERRIDES ========== */
+p,
+span,
+div,
+label {
+    color: var(--text-secondary) !important;
 }
 
-/* ========== SCROLLBAR ========== */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-    border-radius: 8px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--accent-emerald), var(--accent-cyan));
-    border-radius: 8px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, var(--accent-cyan), var(--accent-emerald));
-}
-
-/* ========== RESPONSIVE ========== */
-@media (max-width: 768px) {
-    .main .block-container {
-        padding: 1.5rem !important;
-        margin: 1rem !important;
-        border-radius: 20px !important;
-        max-width: 100% !important;
-    }
-
-    h1,
-    .hero-title {
-        font-size: 2.5rem !important;
-    }
-}
-
-/* ========== STEP INDICATOR ========== */
-[data-testid="column"]>div>div>div {
-    animation: fadeIn 0.5s ease-out;
-}
-
-/* ========== REVIEW PAGE ========== */
-.streamlit-expanderContent * {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     color: var(--text-primary) !important;
+    font-weight: 700 !important;
 }
 
 textarea[disabled] {
     color: var(--text-secondary) !important;
     opacity: 1 !important;
-    background: var(--bg-primary) !important;
+    background: var(--void) !important;
 }
 
-/* ========== RESULTS PAGE ========== */
-div[style*="linear-gradient(135deg, #2E6F40"] {
-    background: var(--gradient-main) !important;
-    animation: glowPulse 2s ease infinite !important;
+/* ========== 19. RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding: 1.5rem !important;
+        max-width: 100% !important;
+    }
+
+    .hero-title {
+        font-size: 2.5rem !important;
+    }
 }
