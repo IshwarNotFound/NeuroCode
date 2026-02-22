@@ -373,14 +373,14 @@ button[kind="secondary"]:hover {
     border-bottom: none !important;
 }
 
-/* ========== 10. FILE UPLOADER ========== */
+/* ========== 10. FILE UPLOADER — Compact ========== */
 [data-testid="stFileUploader"] {
     background: var(--void-surface) !important;
     border: 1px dashed var(--void-border) !important;
-    border-radius: 12px !important;
-    padding: 1rem !important;
+    border-radius: 10px !important;
+    padding: 0.6rem 0.8rem !important;
     transition: all 0.3s ease !important;
-    margin-top: 0 !important;
+    margin-top: 0.4rem !important;
 }
 
 [data-testid="stFileUploader"]:hover {
@@ -390,6 +390,18 @@ button[kind="secondary"]:hover {
 
 [data-testid="stFileUploader"] section {
     background: transparent !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+}
+
+/* Hide the entire dropzone area (icon + "Drag and drop" + limit text) */
+[data-testid="stFileUploaderDropzone"] {
+    padding: 0.5rem !important;
+    min-height: 0 !important;
+}
+
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    display: none !important;
 }
 
 [data-testid="stFileUploader"] button {
@@ -397,11 +409,12 @@ button[kind="secondary"]:hover {
     color: #000000 !important;
     font-weight: 600 !important;
     border-radius: 8px !important;
+    font-size: 0.85rem !important;
+    padding: 0.5rem 1.2rem !important;
 }
 
-/* Hide Streamlit's default '200MB' limit text — we show our own in the ghost card */
-[data-testid="stFileUploader"] small,
-[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzoneInstructions"] div:last-child {
+/* Hide limit text */
+[data-testid="stFileUploader"] small {
     display: none !important;
 }
 
