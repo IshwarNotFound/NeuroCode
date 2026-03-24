@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from collections import Counter
 
 class Vocabulary:
@@ -45,7 +45,7 @@ class Vocabulary:
             self.word_freq.update(tokens)
         
         # Start assigning IDs from 2, as 0 and 1 are already taken by PAD and UNK
-        idx = 2  
+        idx: int = 2
         
         # most_common() returns words sorted by frequency descending.
         # This means lower IDs are given to more common words.
@@ -54,11 +54,11 @@ class Vocabulary:
             if freq >= self.min_freq:
                 self.word2idx[word] = idx
                 self.idx2word[idx] = word
-                idx += 1
+                idx = idx + 1  # type: ignore[operator]
         
         return self
     
-    def encode(self, tokens: List[str], max_length: int = None) -> List[int]:
+    def encode(self, tokens: List[str], max_length: Optional[int] = None) -> List[int]:
         """
         Converts a list of string tokens into a list of integer indices based on the built vocabulary.
         
@@ -77,7 +77,7 @@ class Vocabulary:
         if max_length:
             if len(indices) > max_length:
                 # Truncate sequence if it exceeds max_length
-                indices = indices[:max_length]
+                indices = indices[0:int(max_length)]  # type: ignore[index]
             else:
                 # Pad sequence with 0s (<PAD>) if it's shorter than max_length
                 indices = indices + [0] * (max_length - len(indices))  

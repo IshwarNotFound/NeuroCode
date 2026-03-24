@@ -20,7 +20,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # The Vocabulary class MUST be imported into the local namespace BEFORE 
 # Python's `pickle.load()` attempts to unpickle the vocabulary file. 
 # Otherwise, unpickling fails with AttributeError.
-from src.vocabulary import Vocabulary
+from src.vocabulary import Vocabulary  # type: ignore[import]
 
 
 def test_predictions():
@@ -33,15 +33,15 @@ def test_predictions():
     print("="*60)
     
     # Delayed import after paths are confirmed setup
-    from src.model_inference import predict_icd10, get_predictor
-    from streamlit_app.case_data import get_case
+    from src.model_inference import predict_icd10, get_predictor  # type: ignore[import]
+    from streamlit_app.case_data import get_case  # type: ignore[import]
     
     # ---------------------------------------------------------
     # Force reload predictor (clear singleton)
     # This guarantees we aren't inheriting corrupted state from 
     # an earlier run or a persistent terminal.
     # ---------------------------------------------------------
-    import src.model_inference as mi
+    import src.model_inference as mi  # type: ignore[import]
     mi._predictor = None
     
     # A curated list of mock patient IDs designed to span distinct chapters:

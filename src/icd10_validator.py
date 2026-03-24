@@ -11,7 +11,7 @@ from collections import Counter
 
 # Attempt to import global configurations; if run dynamically where paths differ (like Colab), fallback is handled.
 try:
-    from config.config import ICD10_PATTERN, ICD10_CHAPTERS, INVALID_ICD10_CATEGORIES
+    from config.config import ICD10_PATTERN, ICD10_CHAPTERS, INVALID_ICD10_CATEGORIES  # type: ignore[import]
 except ImportError:
     # Default fallback values mirroring the main config file to ensure modular independence
     # Valid pattern: Single letter A-Z (excluding some), 2 digits, optional dot, up to 4 alphanumerics.
@@ -88,14 +88,14 @@ class ICD10Validator:
             return False
             
         # Verify characters 2 and 3 are actually numbers
-        base = code[:3].replace('.', '')
+        base = str(code)[0:3].replace('.', '')  # type: ignore[index]
         if len(base) < 3:
             return False
         if not base[1:3].isdigit():
             return False
             
         # Verify the code isn't listed in our known false positive exclusion set
-        if code[:3] in self.false_positives:
+        if str(code)[0:3] in self.false_positives:  # type: ignore[index]
             return False
             
         return True
@@ -169,7 +169,7 @@ class ICD10Validator:
         if '.' in code:
             category, extension = code.split('.', 1)
         else:
-            category = code[:3]
+            category = str(code)[0:3]  # type: ignore[index]
             extension = ''
         
         # Return a compiled dictionary describing the code's attributes
@@ -195,7 +195,7 @@ class ICD10Validator:
         """
         if not code or len(code) < 3:
             return ''
-        return code[:3].upper()
+        return str(code)[0:3].upper()  # type: ignore[index]
     
     def get_chapter(self, code: str) -> str:
         """
@@ -287,7 +287,8 @@ if __name__ == "__main__":
     print(f"\nExtracted {len(codes)} codes:")
     for i, code in enumerate(codes, 1):
         info = validator.get_code_info(code)
-        print(f"  {i}. {code} - {info['chapter_name']}")
+        chapter = info['chapter_name'] if info else 'Unknown'
+        print(f"  {i}. {code} - {chapter}")
     
     # Print quantitative distributions
     print("\n" + "=" * 50)
