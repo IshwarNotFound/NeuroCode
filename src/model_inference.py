@@ -20,6 +20,12 @@ from src.vocabulary import Vocabulary
 # Initialize a logger for this module to track events and errors
 logger = logging.getLogger(__name__)
 
+
+class SecurityError(Exception):
+    """Custom exception raised when a security check fails (e.g., file integrity verification)."""
+    pass
+
+
 # Determine the root directory of the project (two levels up from this file)
 PROJECT_ROOT = Path(__file__).parent.parent
 
