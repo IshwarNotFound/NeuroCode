@@ -317,12 +317,79 @@ class ICD10Predictor:
         # Split text into a list of constituent words based on whitespace
         tokens = text.split()
         
-        # Simple dictionary for expanding common medical acronyms
+        # Comprehensive dictionary for expanding common medical acronyms
+        # Covers cardiology, endocrine, renal, respiratory, neuro, GI, 
+        # musculoskeletal, mental health, medication, and general clinical terms
         abbrev_map = {
-            'pt': 'patient', 'dx': 'diagnosis', 'htn': 'hypertension',
-            'ckd': 'chronic kidney disease',
+            # General Clinical
+            'pt': 'patient', 'pts': 'patients', 'dx': 'diagnosis', 'hx': 'history',
+            'sx': 'symptoms', 'tx': 'treatment', 'rx': 'prescription', 'fx': 'fracture',
+            'pmh': 'past medical history', 'pmhx': 'past medical history',
+            'fhx': 'family history', 'shx': 'social history',
+            'ros': 'review of systems', 'pe': 'physical examination',
+            'wbc': 'white blood cell', 'rbc': 'red blood cell', 'hgb': 'hemoglobin',
+            'hct': 'hematocrit', 'plt': 'platelets', 'bmp': 'basic metabolic panel',
+            'cbc': 'complete blood count', 'cmp': 'comprehensive metabolic panel',
+            'bnp': 'brain natriuretic peptide', 'crp': 'c reactive protein',
+            'esr': 'erythrocyte sedimentation rate', 'inr': 'international normalized ratio',
+            'ptt': 'partial thromboplastin time',
+            
+            # Cardiovascular
+            'htn': 'hypertension', 'chf': 'congestive heart failure',
+            'cad': 'coronary artery disease', 'mi': 'myocardial infarction',
+            'afib': 'atrial fibrillation', 'af': 'atrial fibrillation',
+            'dvt': 'deep vein thrombosis', 'pe': 'pulmonary embolism',
+            'pvd': 'peripheral vascular disease', 'pad': 'peripheral arterial disease',
+            'lvef': 'left ventricular ejection fraction', 'ef': 'ejection fraction',
+            'cabg': 'coronary artery bypass graft', 'pci': 'percutaneous coronary intervention',
+            'icd': 'implantable cardioverter defibrillator',
+            'avr': 'aortic valve replacement', 'mvr': 'mitral valve replacement',
+            
+            # Endocrine / Metabolic
+            'dm': 'diabetes mellitus', 'dm2': 'type 2 diabetes mellitus',
+            't2dm': 'type 2 diabetes mellitus', 't1dm': 'type 1 diabetes mellitus',
+            'hba1c': 'hemoglobin a1c', 'a1c': 'hemoglobin a1c',
+            'tsh': 'thyroid stimulating hormone', 'bmi': 'body mass index',
+            
+            # Respiratory
             'copd': 'chronic obstructive pulmonary disease',
-            'chf': 'congestive heart failure', 'cva': 'cerebrovascular accident'
+            'sob': 'shortness of breath', 'doe': 'dyspnea on exertion',
+            'osa': 'obstructive sleep apnea', 'cpap': 'continuous positive airway pressure',
+            'bipap': 'bilevel positive airway pressure', 'o2': 'oxygen',
+            'spo2': 'oxygen saturation', 'abg': 'arterial blood gas',
+            
+            # Renal
+            'ckd': 'chronic kidney disease', 'esrd': 'end stage renal disease',
+            'gfr': 'glomerular filtration rate', 'egfr': 'estimated glomerular filtration rate',
+            'bun': 'blood urea nitrogen', 'aki': 'acute kidney injury',
+            'uti': 'urinary tract infection', 'bph': 'benign prostatic hyperplasia',
+            
+            # Neurological
+            'cva': 'cerebrovascular accident', 'tia': 'transient ischemic attack',
+            'ms': 'multiple sclerosis', 'alz': 'alzheimer',
+            'loc': 'loss of consciousness', 'ams': 'altered mental status',
+            
+            # Musculoskeletal
+            'oa': 'osteoarthritis', 'ra': 'rheumatoid arthritis',
+            'lbp': 'low back pain', 'rom': 'range of motion',
+            'tka': 'total knee arthroplasty', 'tha': 'total hip arthroplasty',
+            'thr': 'total hip replacement', 'tkr': 'total knee replacement',
+            'orif': 'open reduction internal fixation',
+            
+            # Gastrointestinal
+            'gerd': 'gastroesophageal reflux disease',
+            'gi': 'gastrointestinal', 'npo': 'nothing by mouth',
+            'peg': 'percutaneous endoscopic gastrostomy',
+            'ibd': 'inflammatory bowel disease',
+            
+            # Mental Health
+            'mdd': 'major depressive disorder', 'gad': 'generalized anxiety disorder',
+            'ptsd': 'post traumatic stress disorder', 'etoh': 'alcohol',
+            
+            # Medication Frequency
+            'prn': 'as needed', 'bid': 'twice daily', 'tid': 'three times daily',
+            'qid': 'four times daily', 'qd': 'once daily', 'qhs': 'at bedtime',
+            'ac': 'before meals', 'pc': 'after meals',
         }
         
         # Expand abbreviations where applicable
@@ -354,83 +421,264 @@ class ICD10Predictor:
         Checks if a specific word exists as a whole standalone word within a given text block.
         This prevents substring false positives, e.g., 'dm' (diabetes) inside 'admission'.
         """
-        # \b denotes a 'word boundary' in regular expressions
         pattern = r'\b' + re.escape(word) + r'\b'
         return bool(re.search(pattern, text, re.IGNORECASE))
     
-    def _apply_keyword_rules(self, text: str, probs: np.ndarray) -> np.ndarray:
+    # -------------------------------------------------------------------------
+    # Clinical Negation Detection
+    # Medical texts frequently contain negated phrases ("no evidence of", "denies",
+    # "ruled out"). Without negation awareness, keyword matching would incorrectly
+    # boost codes for conditions the patient does NOT have.
+    # -------------------------------------------------------------------------
+    
+    # Pre-compiled negation patterns that precede medical terms
+    NEGATION_CUES = re.compile(
+        r'\b('
+        r'no |not |deny |denies |denied |negative for |'
+        r'without |absence of |absent |never |'
+        r'no evidence of |no signs of |no symptoms of |'
+        r'no history of |no hx of |'
+        r'ruled out |rule out |r/o |'
+        r'unlikely |does not have |doesn\'t have |'
+        r'resolved |no longer has |no current '
+        r')', re.IGNORECASE
+    )
+    
+    def _is_negated(self, text_lower: str, keyword: str, is_phrase: bool) -> bool:
         """
-        A rule-based AI enhancement layer.
+        Checks if a keyword match is preceded by a clinical negation cue
+        within a 60-character window. This prevents boosting codes for conditions
+        explicitly denied in the clinical text.
         
-        While the neural network makes general statistical predictions, sometimes explicit
-        keywords found in the text guarantee an ICD-10 code applies. This function boosts 
-        the predicted probability scores for particular codes when their associated explicit 
-        keywords or phrases are unambiguously found.
+        Uses a sliding-window approach: finds each occurrence of the keyword,
+        then scans the preceding context for negation language.
+        """
+        # Find all occurrences of the keyword
+        if is_phrase:
+            positions = [m.start() for m in re.finditer(re.escape(keyword), text_lower)]
+        else:
+            positions = [m.start() for m in re.finditer(r'\b' + re.escape(keyword) + r'\b', text_lower)]
+        
+        if not positions:
+            return False
+        
+        # Check each occurrence — if ALL are negated, the keyword is negated
+        all_negated = True
+        for pos in positions:
+            # Look at 60 characters before the keyword for negation cues
+            window_start = max(0, pos - 60)
+            preceding_text = text_lower[window_start:pos]
+            if not self.NEGATION_CUES.search(preceding_text):
+                all_negated = False
+                break
+        
+        return all_negated
+    
+    def _apply_keyword_rules(self, text: str, probs: np.ndarray) -> Tuple[np.ndarray, Dict]:
+        """
+        Hybrid rule-based enhancement layer with negation-awareness and evidence tracking.
+        
+        Scans the original clinical text for domain-specific keywords mapped to ICD-10 codes.
+        When unambiguous clinical phrases are detected (and not negated), the corresponding
+        CNN probability scores are boosted. All matched keywords are tracked as "evidence"
+        for the explainability layer shown in the UI.
+        
+        Returns:
+            Tuple of (modified probability array, evidence dictionary mapping code → list of matched keywords)
         """
         text_lower = text.lower()
         
-        # Dictionary outlining rules: 
-        # Key: Expected ICD-10 code snippet 
-        # Value: List of tuples -> (Trigger keyword/phrase, is_phrase_flag, boost_amount)
-        # Note: If is_phrase is True, it does a simple substring match. If False, it uses a whole-word match.
+        # Evidence tracker: maps ICD-10 code string → list of matched keyword strings
+        evidence = {}
+        
+        # ------------------------------------------------------------------
+        # Comprehensive Keyword Rules — covers all 100 model output classes
+        # Format: 'ICD_CODE': [(keyword, is_phrase, boost_amount), ...]
+        #   - is_phrase=True  → substring match (for multi-word clinical expressions)
+        #   - is_phrase=False → whole-word boundary match (prevents false positives)
+        #   - boost values are calibrated: 0.3-0.5 for ambiguous terms,
+        #     0.6-0.7 for strong clinical indicators, 0.8-0.9 for unambiguous diagnoses
+        # ------------------------------------------------------------------
         keyword_rules = {
-            # Falls and mobility
-            'Z91.81': [('fall', False, 0.8), ('falling', False, 0.8), ('fell', False, 0.8), ('history of fall', True, 0.9)],
-            'R26.81': [('unsteadiness', False, 0.7), ('unsteady gait', True, 0.8)],
-            'R26.2': [('difficulty walking', True, 0.8), ('difficulty in walking', True, 0.8), ('gait disturbance', True, 0.7)],
-            'M62.81': [('muscle weakness', True, 0.8), ('muscular weakness', True, 0.8), ('generalized weakness', True, 0.7)],
+            # ======================== FALLS & MOBILITY ========================
+            'Z91.81': [('fall', False, 0.5), ('falling', False, 0.5), ('fell', False, 0.5),
+                        ('history of fall', True, 0.7), ('fall risk', True, 0.6), ('fall prevention', True, 0.5)],
+            'R26.81': [('unsteadiness', False, 0.5), ('unsteady gait', True, 0.6), ('unsteady on feet', True, 0.6)],
+            'R26.2':  [('difficulty walking', True, 0.6), ('difficulty in walking', True, 0.6),
+                        ('gait disturbance', True, 0.5), ('impaired ambulation', True, 0.5)],
+            'R26.89': [('abnormal gait', True, 0.5), ('gait abnormality', True, 0.5), ('shuffling gait', True, 0.5)],
+            'R29.6':  [('repeated falls', True, 0.6), ('recurrent falls', True, 0.6), ('frequent falls', True, 0.6)],
+            'M62.81': [('muscle weakness', True, 0.6), ('muscular weakness', True, 0.6),
+                        ('generalized weakness', True, 0.5), ('weakness in extremities', True, 0.5)],
+            'R41.841': [('cognitive communication deficit', True, 0.6), ('cognitive deficit', True, 0.4),
+                         ('communication deficit', True, 0.4)],
             
-            # Metabolic/Endocrine
-            'E78.5': [('hyperlipidemia', False, 0.9), ('cholesterol', False, 0.6), ('elevated lipid', True, 0.7)],
-            'E03.9': [('hypothyroidism', False, 0.9), ('thyroid', False, 0.5), ('tsh elevated', True, 0.8)],
-            'E11.9': [('type 2 diabetes', True, 0.9), ('diabetes mellitus', True, 0.8), ('diabetic', False, 0.6)],
-            'E11.42': [('diabetic neuropathy', True, 0.9), ('peripheral neuropathy', True, 0.7)],
+            # ======================== CARDIOVASCULAR ========================
+            'I10':    [('hypertension', False, 0.5), ('high blood pressure', True, 0.6),
+                        ('elevated blood pressure', True, 0.5), ('htn', False, 0.5)],
+            'I12.9':  [('hypertensive chronic kidney disease', True, 0.7), ('hypertensive renal disease', True, 0.6)],
+            'I13.0':  [('hypertensive heart and chronic kidney', True, 0.7), ('hypertensive heart and ckd', True, 0.7)],
+            'I13.10': [('hypertensive heart and ckd without heart failure', True, 0.7),
+                        ('hypertensive heart disease and ckd', True, 0.5)],
+            'I25.10': [('coronary artery disease', True, 0.7), ('cad', False, 0.6),
+                        ('coronary atherosclerosis', True, 0.7), ('ischemic heart disease', True, 0.5)],
+            'I25.2':  [('old myocardial infarction', True, 0.7), ('previous mi', True, 0.6),
+                        ('prior myocardial infarction', True, 0.7), ('history of mi', True, 0.6)],
+            'I27.20': [('pulmonary hypertension', True, 0.7), ('pulmonary htn', True, 0.6)],
+            'I48.0':  [('paroxysmal atrial fibrillation', True, 0.7), ('atrial fibrillation', True, 0.6),
+                        ('afib', False, 0.6), ('a-fib', False, 0.6)],
+            'I48.91': [('atrial fibrillation unspecified', True, 0.6), ('chronic afib', True, 0.5)],
+            'I50.32': [('diastolic heart failure', True, 0.7), ('congestive heart failure', True, 0.6),
+                        ('chf', False, 0.6), ('heart failure', True, 0.5)],
+            'I50.9':  [('heart failure unspecified', True, 0.5), ('cardiac failure', True, 0.5)],
+            'I67.9':  [('cerebrovascular disease', True, 0.6), ('cerebrovascular', False, 0.4)],
+            'I70.0':  [('atherosclerosis', False, 0.5), ('aortic atherosclerosis', True, 0.7)],
+            'I73.9':  [('peripheral vascular disease', True, 0.6), ('pvd', False, 0.5),
+                        ('peripheral arterial disease', True, 0.6), ('pad', False, 0.4)],
+            'I87.2':  [('venous insufficiency', True, 0.6), ('chronic venous insufficiency', True, 0.7)],
+            'I89.0':  [('lymphedema', False, 0.7), ('lymphoedema', False, 0.7)],
             
-            # Gout
-            'M10.33': [('gout', False, 0.9), ('podagra', False, 0.9), ('uric acid', True, 0.6)],
+            # ======================== ENDOCRINE / METABOLIC ========================
+            'E03.9':  [('hypothyroidism', False, 0.7), ('thyroid', False, 0.3),
+                        ('tsh elevated', True, 0.6), ('underactive thyroid', True, 0.7)],
+            'E11.9':  [('type 2 diabetes', True, 0.7), ('diabetes mellitus', True, 0.6),
+                        ('diabetic', False, 0.4), ('t2dm', False, 0.6)],
+            'E11.22': [('diabetic chronic kidney disease', True, 0.7), ('diabetic ckd', True, 0.7),
+                        ('diabetes with kidney disease', True, 0.6), ('diabetic nephropathy', True, 0.6)],
+            'E11.42': [('diabetic neuropathy', True, 0.7), ('diabetic polyneuropathy', True, 0.7),
+                        ('peripheral neuropathy', True, 0.5)],
+            'E11.51': [('diabetic retinopathy', True, 0.7), ('diabetic eye disease', True, 0.6)],
+            'E11.65': [('diabetes with hyperglycemia', True, 0.7), ('hyperglycemia', False, 0.4),
+                        ('elevated blood sugar', True, 0.5), ('uncontrolled diabetes', True, 0.5)],
+            'E11.69': [('diabetes with complication', True, 0.5), ('diabetic complication', True, 0.5)],
+            'E26.1':  [('hyperaldosteronism', False, 0.7), ('conn syndrome', True, 0.7), ('aldosterone', False, 0.4)],
+            'E55.9':  [('vitamin d deficiency', True, 0.7), ('low vitamin d', True, 0.6), ('vit d deficiency', True, 0.7)],
+            'E66.01': [('morbid obesity', True, 0.7), ('severe obesity', True, 0.5), ('bmi 40', True, 0.5),
+                        ('bmi over 40', True, 0.5), ('class iii obesity', True, 0.7)],
+            'E78.2':  [('mixed hyperlipidemia', True, 0.7), ('combined hyperlipidemia', True, 0.6)],
+            'E78.5':  [('hyperlipidemia', False, 0.6), ('high cholesterol', True, 0.5),
+                        ('elevated lipid', True, 0.5), ('dyslipidemia', False, 0.5)],
             
-            # Kidney
-            'I13.0': [('hypertensive chronic kidney', True, 0.9), ('hypertensive ckd', True, 0.9)],
-            'N18.2': [('ckd stage 2', True, 0.9), ('chronic kidney disease stage 2', True, 0.9)],
-            'N18.3': [('ckd stage 3', True, 0.9), ('chronic kidney disease stage 3', True, 0.9)],
-            'N18.4': [('ckd stage 4', True, 0.9), ('chronic kidney disease stage 4', True, 0.9)],
+            # ======================== MENTAL / BEHAVIORAL ========================
+            'F03.90': [('dementia', False, 0.6), ('cognitive decline', True, 0.4),
+                        ('memory loss', True, 0.4), ('cognitive impairment', True, 0.5)],
+            'F32.A':  [('depression', False, 0.4), ('major depressive', True, 0.6),
+                        ('depressive disorder', True, 0.6)],
+            'F33.1':  [('recurrent depression', True, 0.6), ('recurrent depressive disorder', True, 0.7),
+                        ('recurrent major depressive', True, 0.7)],
+            'F41.1':  [('generalized anxiety', True, 0.6), ('anxiety disorder', True, 0.5), ('gad', False, 0.5)],
+            'F41.9':  [('anxiety', False, 0.3), ('anxious', False, 0.3)],
             
-            # Musculoskeletal
-            'M17.00': [('osteoarthritis', False, 0.7), ('knee osteoarthritis', True, 0.9), ('bilateral knee', True, 0.7)],
-            'M81.0': [('osteoporosis', False, 0.8), ('bone loss', True, 0.6)],
-            'M54.5': [('low back pain', True, 0.9), ('lumbar pain', True, 0.8), ('back pain', True, 0.6)],
+            # ======================== NERVOUS SYSTEM ========================
+            'G20.A1': [('parkinson', False, 0.7), ('parkinsons', False, 0.7), ('parkinsonism', False, 0.5)],
+            'G30.1':  [('alzheimer', False, 0.7), ('alzheimers', False, 0.7)],
+            'G31.1':  [('senile degeneration', True, 0.7), ('senile dementia', True, 0.5)],
+            'G31.84': [('lewy body', True, 0.7), ('lewy bodies', True, 0.7)],
+            'G47.00': [('insomnia', False, 0.6), ('difficulty sleeping', True, 0.5), ('sleep disturbance', True, 0.4)],
+            'G47.33': [('sleep apnea', True, 0.7), ('obstructive sleep apnea', True, 0.7),
+                        ('osa', False, 0.5), ('cpap', False, 0.4)],
+            'G62.9':  [('polyneuropathy', False, 0.6), ('peripheral neuropathy', True, 0.5),
+                        ('neuropathy', False, 0.3)],
+            'G89.29': [('chronic pain', True, 0.5), ('pain syndrome', True, 0.4), ('chronic pain syndrome', True, 0.6)],
             
-            # Gastrointestinal
-            'K21.9': [('gerd', False, 0.9), ('gastroesophageal reflux', True, 0.9), ('heartburn', False, 0.7), ('reflux', False, 0.5)],
+            # ======================== EYE ========================
+            'H40.9':  [('glaucoma', False, 0.7), ('intraocular pressure', True, 0.5)],
             
-            # Cardiovascular
-            'I25.10': [('coronary artery disease', True, 0.9), ('cad', False, 0.8), ('coronary atherosclerosis', True, 0.9)],
-            'I10': [('hypertension', False, 0.7), ('high blood pressure', True, 0.8), ('elevated blood pressure', True, 0.7)],
-            'I50.32': [('heart failure', True, 0.8), ('congestive heart failure', True, 0.9), ('chf', False, 0.8)],
-            'I48.0': [('atrial fibrillation', True, 0.9), ('afib', False, 0.9), ('a-fib', False, 0.9)],
-            'I70.0': [('atherosclerosis', False, 0.8), ('aortic atherosclerosis', True, 0.9)],
+            # ======================== RESPIRATORY ========================
+            'J44.9':  [('copd', False, 0.7), ('chronic obstructive pulmonary', True, 0.7),
+                        ('emphysema', False, 0.5), ('chronic bronchitis', True, 0.4)],
+            'J96.11': [('chronic respiratory failure', True, 0.7), ('respiratory failure', True, 0.4),
+                        ('ventilator dependent', True, 0.5), ('on ventilator', True, 0.4)],
             
-            # Respiratory
-            'J44.9': [('copd', False, 0.9), ('chronic obstructive pulmonary', True, 0.9)],
-            'G47.33': [('sleep apnea', True, 0.9), ('obstructive sleep apnea', True, 0.95), ('snoring', False, 0.5)],
+            # ======================== DIGESTIVE ========================
+            'K21.9':  [('gerd', False, 0.7), ('gastroesophageal reflux', True, 0.7),
+                        ('acid reflux', True, 0.5), ('heartburn', False, 0.4)],
+            'K59.00': [('constipation', False, 0.6), ('chronic constipation', True, 0.7)],
             
-            # Neurological
-            'G30.1': [('alzheimer', False, 0.9), ('alzheimers', False, 0.9)],
-            'G89.29': [('chronic pain', True, 0.7), ('pain syndrome', True, 0.6)],
+            # ======================== MUSCULOSKELETAL ========================
+            'M10.33': [('gout', False, 0.7), ('podagra', False, 0.7), ('gouty arthritis', True, 0.7),
+                        ('uric acid', True, 0.4)],
+            'M15.0':  [('primary generalized osteoarthritis', True, 0.7), ('generalized oa', True, 0.6)],
+            'M15.9':  [('polyosteoarthritis', False, 0.6), ('multiple joint osteoarthritis', True, 0.6)],
+            'M17.00': [('bilateral knee osteoarthritis', True, 0.7), ('bilateral knee oa', True, 0.7),
+                        ('osteoarthritis both knees', True, 0.6)],
+            'M17.10': [('unilateral knee osteoarthritis', True, 0.7), ('knee osteoarthritis', True, 0.5),
+                        ('knee oa', True, 0.5)],
+            'M17.20': [('post-traumatic osteoarthritis of knee', True, 0.7)],
+            'M17.40': [('secondary osteoarthritis of knee', True, 0.7)],
+            'M19.90': [('osteoarthritis', False, 0.4), ('degenerative joint disease', True, 0.5),
+                        ('djd', False, 0.5)],
+            'M48.061': [('spinal stenosis', True, 0.6), ('lumbar stenosis', True, 0.7)],
+            'M54.50': [('low back pain', True, 0.7), ('lumbar pain', True, 0.6), ('lumbago', False, 0.6),
+                        ('back pain', True, 0.4)],
+            'M81.0':  [('osteoporosis', False, 0.6), ('bone density loss', True, 0.5)],
             
-            # Mental Health
-            'F32.A': [('depression', False, 0.6), ('major depressive', True, 0.8), ('depressive disorder', True, 0.8)],
-            'F41.1': [('anxiety', False, 0.6), ('generalized anxiety', True, 0.8), ('anxiety disorder', True, 0.8)],
+            # ======================== RENAL / URINARY ========================
+            'N18.2':  [('ckd stage 2', True, 0.7), ('chronic kidney disease stage 2', True, 0.7),
+                        ('ckd stage ii', True, 0.7)],
+            'N18.31': [('ckd stage 3a', True, 0.7), ('chronic kidney disease stage 3a', True, 0.7)],
+            'N18.32': [('ckd stage 3b', True, 0.7), ('chronic kidney disease stage 3b', True, 0.7)],
+            'N18.9':  [('chronic kidney disease', True, 0.4), ('ckd', False, 0.3),
+                        ('renal insufficiency', True, 0.4)],
+            'N32.81': [('overactive bladder', True, 0.7), ('oab', False, 0.5), ('urinary urgency', True, 0.5)],
+            'N39.0':  [('urinary tract infection', True, 0.7), ('uti', False, 0.6)],
+            'N40.0':  [('benign prostatic hyperplasia', True, 0.7), ('bph', False, 0.6),
+                        ('enlarged prostate', True, 0.6)],
+            'N40.1':  [('bph with luts', True, 0.7), ('prostatic hyperplasia with lower urinary', True, 0.7)],
             
-            # Urinary
-            'N39.0': [('urinary tract infection', True, 0.9), ('uti', False, 0.8)],
-            'N40.0': [('benign prostatic hyperplasia', True, 0.9), ('bph', False, 0.8), ('prostate', False, 0.5)],
+            # ======================== BLOOD / HEMATOLOGIC ========================
+            'D50.9':  [('iron deficiency anemia', True, 0.7), ('iron deficiency', True, 0.5),
+                        ('low iron', True, 0.4), ('ferritin low', True, 0.5)],
+            'D63.1':  [('anemia of chronic disease', True, 0.7), ('anemia of chronic kidney disease', True, 0.7),
+                        ('anemia in ckd', True, 0.6)],
+            'D68.69': [('thrombophilia', False, 0.6), ('coagulation disorder', True, 0.5),
+                        ('hypercoagulable', False, 0.5)],
             
-            # Other Specific Nutrient conditions
-            'E55.9': [('vitamin d deficiency', True, 0.9)],
+            # ======================== INFECTIOUS ========================
+            'A12.50': [('tuberculosis', False, 0.4)],
+            'B12':    [('viral hepatitis', True, 0.5)],
+            'B13.00': [('hepatitis c', True, 0.6)],
+            'B20.0':  [('hiv', False, 0.6), ('human immunodeficiency', True, 0.7)],
+            
+            # ======================== NEOPLASMS ========================
+            'D07.00': [('carcinoma in situ', True, 0.5)],
+            'D18.3':  [('hemangioma', False, 0.6)],
+            
+            # ======================== Z-CODES (HEALTH FACTORS / STATUS) ========================
+            'Z46.6':  [('orthopedic device fitting', True, 0.5), ('orthotic fitting', True, 0.5)],
+            'Z55.6':  [('illiteracy', False, 0.7), ('cannot read', True, 0.5), ('unable to read', True, 0.5),
+                        ('low literacy', True, 0.5)],
+            'Z60.4':  [('social exclusion', True, 0.5), ('social isolation', True, 0.5)],
+            'Z74.1':  [('need for assistance with personal care', True, 0.6),
+                        ('assistance with adl', True, 0.5), ('dependent on caregiver', True, 0.5)],
+            'Z79.01': [('long term use of anticoagulant', True, 0.7), ('on warfarin', True, 0.6),
+                        ('on coumadin', True, 0.6), ('on eliquis', True, 0.6), ('on xarelto', True, 0.6),
+                        ('anticoagulant therapy', True, 0.5), ('blood thinner', True, 0.4)],
+            'Z79.2':  [('long term use of antibiotic', True, 0.6), ('chronic antibiotic', True, 0.5)],
+            'Z79.4':  [('long term use of insulin', True, 0.7), ('insulin dependent', True, 0.6),
+                        ('on insulin', True, 0.5), ('insulin therapy', True, 0.5)],
+            'Z79.51': [('long term use of inhaled steroid', True, 0.6), ('inhaled corticosteroid', True, 0.5)],
+            'Z79.82': [('long term use of aspirin', True, 0.6), ('daily aspirin', True, 0.5),
+                        ('aspirin therapy', True, 0.5)],
+            'Z79.84': [('long term use of oral hypoglycemic', True, 0.6), ('on metformin', True, 0.5),
+                        ('oral diabetes medication', True, 0.5)],
+            'Z79.891': [('long term use of opiate', True, 0.6), ('chronic opioid', True, 0.5),
+                         ('opioid therapy', True, 0.5), ('on morphine', True, 0.5)],
+            'Z79.899': [('long term medication use', True, 0.4), ('chronic medication', True, 0.3)],
+            'Z86.718': [('history of pulmonary embolism', True, 0.7), ('history of dvt', True, 0.6),
+                         ('prior pe', True, 0.5), ('prior dvt', True, 0.5)],
+            'Z86.73': [('history of tia', True, 0.6), ('history of stroke', True, 0.6),
+                        ('prior stroke', True, 0.6), ('prior cva', True, 0.6)],
+            'Z87.440': [('history of urinary tract infection', True, 0.6), ('recurrent uti', True, 0.6)],
+            'Z87.891': [('history of nicotine dependence', True, 0.7), ('former smoker', True, 0.6),
+                         ('ex-smoker', False, 0.5), ('quit smoking', True, 0.5), ('tobacco history', True, 0.5)],
+            'Z99.3':  [('wheelchair dependent', True, 0.7), ('wheelchair bound', True, 0.6),
+                        ('uses wheelchair', True, 0.6)],
+            'Z99.81': [('ventilator dependent', True, 0.7), ('tracheostomy dependent', True, 0.6)],
+            'Z99.89': [('dependence on other enabling machine', True, 0.5), ('cpap dependent', True, 0.5)],
         }
         
-        # Set to track which specific ICD-10 classes received a boost for logging/debugging purposes
+        # Set to track which specific ICD-10 classes received a boost
         boosted_codes = set()
         
         for code, rules in keyword_rules.items():
@@ -445,28 +693,39 @@ class ICD10Predictor:
             if code_idx is None:
                 continue
             
-            # Cycle through all keyword patterns mapped to this code
             for rule in rules:
-                keyword = rule[0]      # The text triggered term
-                is_phrase = rule[1]    # Whether to match exactly as a whole word
-                boost = rule[2]        # Amount to increase model confidence by
+                keyword = rule[0]
+                is_phrase = rule[1]
+                boost = rule[2]
                 
                 # Check for the keyword based on its matching rule type
+                matched = False
                 if is_phrase:
-                    # Simple substring contains check
-                    if keyword in text_lower:
-                        # Apply boost, capping the possibility at 1.0 (100% confidence)
-                        probs[code_idx] = min(1.0, probs[code_idx] + boost)
-                        boosted_codes.add(code)
+                    matched = keyword in text_lower
                 else:
-                    # Stricter standalone whole-word check
-                    if self._find_whole_word(text_lower, keyword):
-                        probs[code_idx] = min(1.0, probs[code_idx] + boost)
-                        boosted_codes.add(code)
+                    matched = self._find_whole_word(text_lower, keyword)
+                
+                if not matched:
+                    continue
+                
+                # Clinical Negation Detection: check if the matched keyword is negated
+                # e.g., "no history of falls", "denies chest pain", "ruled out diabetes"
+                if self._is_negated(text_lower, keyword, is_phrase):
+                    logger.debug(f"Negated keyword '{keyword}' for {code} — skipping boost")
+                    continue
+                
+                # Apply the boost, capping at 1.0
+                probs[code_idx] = min(1.0, probs[code_idx] + boost)
+                boosted_codes.add(code)
+                
+                # Track the matched keyword as evidence for the explainability layer
+                if code not in evidence:
+                    evidence[code] = []
+                evidence[code].append(keyword)
         
-        return probs
+        return probs, evidence
     
-    def predict(self, text: str, top_k: int = 10, threshold: float = 0.1) -> List[Dict]:
+    def predict(self, text: str, top_k: int = 10, threshold: float = 0.15) -> List[Dict]:
         """
         Takes raw medical text and processes it completely to return structured ICD-10 predictions.
         
@@ -474,9 +733,11 @@ class ICD10Predictor:
             text: Raw input medical record or notes.
             top_k: The maximum number of predicted codes to return.
             threshold: Minimum probability/confidence required to include a prediction in the result.
+                       Default raised to 0.15 for better precision (reduced false positives).
         
         Returns:
-            A list of dictionary objects describing each predicted ICD-10 code (code, description, confidence, etc.).
+            A list of dictionary objects describing each predicted ICD-10 code 
+            (code, description, confidence, evidence, etc.).
         """
         if not self.model:
             raise RuntimeError("Model not loaded!")
@@ -488,15 +749,14 @@ class ICD10Predictor:
         encoded = self.encode_text(tokens).to(self.device)
         
         # 3. Perform a forward pass through the Neural Network
-        # torch.no_grad() speeds up computation and saves memory since we are not training/updating weights
         with torch.no_grad():
             predictions = self.model(encoded)
         
         # 4. Extract raw probability scores mapped by index (flattening batch layer)
         probs = predictions.cpu().numpy()[0]
         
-        # 5. Integrate deterministic rule-based predictions to cover neural network weak spots
-        probs = self._apply_keyword_rules(text, probs)
+        # 5. Integrate deterministic rule-based predictions with negation awareness
+        probs, evidence = self._apply_keyword_rules(text, probs)
         
         # 6. Safety boundary: Ensure all probabilities remain strictly between 0 and 1
         probs = np.clip(probs, 0.0, 1.0)
@@ -506,25 +766,34 @@ class ICD10Predictor:
         
         results = []
         for idx in top_indices:
-            # Stop accumulating results once we hit the requested limit
             if len(results) >= top_k:
                 break
             
-            # Check the probability score; if it drops below the cutoff, we can stop evaluating (since array is sorted)
             confidence = float(probs[idx])
             if confidence < threshold:
                 continue
             
-            # Retrieve the standard ICD-10 code string mapping directly to this prediction
             code = self.idx_to_code[idx]
             
-            # Bundle all the necessary metadata detailing this prediction for the frontend application
+            # Attach real evidence: the actual keywords/phrases that triggered the boost
+            # If no keyword match, the prediction came purely from the CNN
+            code_evidence = evidence.get(code, [])
+            if not code_evidence:
+                # Check if any parent code prefix has evidence (e.g., E11.9 rules matching E11.22)
+                for ev_code, ev_keywords in evidence.items():
+                    if code.startswith(ev_code) or ev_code.startswith(code):
+                        code_evidence = ev_keywords
+                        break
+            
+            evidence_str = ", ".join(code_evidence) if code_evidence else "CNN pattern match"
+            
             results.append({
                 'code': code,
                 'description': get_code_description(code),
                 'confidence': confidence,
                 'color': get_code_color(code),
-                'chapter': get_chapter_name(code)
+                'chapter': get_chapter_name(code),
+                'evidence': evidence_str
             })
         
         return results

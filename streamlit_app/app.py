@@ -178,18 +178,10 @@ def run_analysis(text):
     try:
         from src.model_inference import predict_icd10
         # Call the singleton predictor and get top 50 codes
+        # Evidence is now returned directly from the inference engine's keyword matching layer
         predictions = predict_icd10(sanitized_text, top_k=50)
         
         terminal.empty()  # Clear the terminal UI once done
-        
-        # Add cosmetic "evidence" text for UI display
-        words = sanitized_text.split()
-        for pred in predictions:
-            if len(words) > 3:
-                evidence_words = random.sample(words, min(4, len(words)))
-                pred['evidence'] = " ".join(evidence_words)
-            else:
-                pred['evidence'] = "Clinical pattern match"
 
         # Return only the top 10 most confident predictions for the UI
         return predictions[:10]
@@ -437,6 +429,7 @@ def step_3_results():
     # PRIMARY DIAGNOSIS — Extract the highest confidence result and render it huge.
     primary = preds[0]
     conf_pct = int(primary['confidence'] * 100)
+    primary_evidence = html.escape(primary.get('evidence', 'CNN pattern match'))
 
     st.markdown(f"""
     <div style="border: 1px solid #222; border-radius: 14px; padding: 3rem; margin-bottom: 2rem; text-align: center; animation: smoothRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
@@ -444,8 +437,11 @@ def step_3_results():
         <div style="font-size: 4.5rem; font-weight: 800; color: #ffffff !important; line-height: 1; margin-bottom: 0.5rem; letter-spacing: -0.04em;">
             {html.escape(primary['code'])}
         </div>
-        <div style="font-size: 1.1rem; color: #888 !important; margin-bottom: 1.5rem;">
+        <div style="font-size: 1.1rem; color: #888 !important; margin-bottom: 1rem;">
             {html.escape(primary['description'])}
+        </div>
+        <div style="font-size: 0.75rem; color: #10b981 !important; margin-bottom: 1.5rem; font-style: italic;">
+            Evidence: {primary_evidence}
         </div>
         <div style="display: inline-block; border: 1px solid #333; border-radius: 50px; padding: 0.3rem 1.2rem;">
             <span style="font-size: 0.85rem; color: #aaa !important;">Confidence: </span>
@@ -468,9 +464,12 @@ def step_3_results():
 
             code_rows.append(f"""
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid #111; animation: smoothRise {0.8 + (i*0.08)}s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
-                <div style="display: flex; align-items: center; gap: 1.5rem;">
-                    <div style="font-size: 1.15rem; font-weight: 700; color: #fff !important;">{html.escape(code['code'])}</div>
-                    <div style="font-size: 0.9rem; color: #777 !important;">{html.escape(code['description'])}</div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                    <div style="display: flex; align-items: center; gap: 1.5rem;">
+                        <div style="font-size: 1.15rem; font-weight: 700; color: #fff !important;">{html.escape(code['code'])}</div>
+                        <div style="font-size: 0.9rem; color: #777 !important;">{html.escape(code['description'])}</div>
+                    </div>
+                    <div style="font-size: 0.7rem; color: #555 !important; font-style: italic; padding-left: 0.1rem;">matched: {html.escape(code.get('evidence', 'CNN pattern match'))}</div>
                 </div>
                 <div style="font-size: 0.85rem; font-family: monospace; color: rgba(255,255,255,{opacity}) !important;">{conf_pct}%</div>
             </div>
