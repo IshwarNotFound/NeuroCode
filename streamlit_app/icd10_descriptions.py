@@ -123,7 +123,7 @@ ICD10_DESCRIPTIONS = {
     
     # Musculoskeletal (M)
     'M10.9': 'Gout, unspecified',
-    'M10.33': 'Gout of wrist',
+    'M10.33': 'Gout (wrist / unspecified)',
     'M17.0': 'Bilateral primary osteoarthritis of knee',
     'M17.00': 'Bilateral primary osteoarthritis of knee',
     'M17.10': 'Unilateral primary osteoarthritis of knee',
@@ -245,6 +245,69 @@ ICD10_DESCRIPTIONS = {
     'K51.90': 'Ulcerative colitis, unspecified',
     'K59.00': 'Constipation, unspecified',
     'K76.0': 'Fatty liver disease',
+
+    # Added for deep-dive coverage of keyword and model outputs
+    'I27.20': 'Pulmonary hypertension, unspecified',
+    'I67.9': 'Cerebrovascular disease, unspecified',
+    'I70.0': 'Atherosclerosis of aorta',
+    'I73.9': 'Peripheral vascular disease, unspecified',
+    'I87.2': 'Venous insufficiency (chronic)(peripheral)',
+    'I89.0': 'Lymphedema, not elsewhere classified',
+
+    'E11.51': 'Type 2 DM with diabetic retinopathy',
+    'E11.69': 'Type 2 DM with other specified complication',
+    'E26.1': 'Secondary hyperaldosteronism',
+    'E55.9': 'Vitamin D deficiency, unspecified',
+
+    'F32.A': 'Depression, unspecified',
+    'F33.1': 'Major depressive disorder, recurrent, moderate',
+
+    'G20.A1': "Parkinson's disease without dyskinesia, without off state",
+    'G30.1': "Alzheimer's disease with late onset",
+    'G31.84': 'Mild cognitive impairment of uncertain etiology',
+    'G47.00': 'Insomnia, unspecified',
+
+    'H40.9': 'Unspecified glaucoma',
+
+    'J96.11': 'Chronic respiratory failure with hypoxia',
+
+    'M15.0': 'Primary generalized osteoarthritis',
+    'M15.9': 'Polyosteoarthritis, unspecified',
+    'M17.20': 'Post-traumatic osteoarthritis, unspecified knee',
+    'M48.061': 'Spinal stenosis, lumbar region without neurogenic claudication',
+
+    'N32.81': 'Overactive bladder',
+
+    'R29.6': 'Repeated falls',
+
+    'D63.1': 'Anemia in chronic kidney disease',
+    'D68.69': 'Other thrombophilia',
+    'D07.00': 'Carcinoma in situ of endometrium',
+    'D18.3': 'Hemangioma of intra-abdominal structures',
+
+    'A12.50': 'Tuberculosis of unspecified bone and joint',
+    'B12': 'Other acute viral hepatitis',
+    'B13.00': 'Acute hepatitis C without hepatic coma',
+    'B20.0': 'Human immunodeficiency virus (HIV) disease',
+
+    'Z46.6': 'Encounter for fitting of orthopedic device',
+    'Z55.6': 'Problems related to low level of literacy',
+    'Z60.4': 'Social exclusion and rejection',
+    'Z74.1': 'Need for assistance with personal care',
+    'Z79.01': 'Long-term current use of anticoagulants',
+    'Z79.2': 'Long-term current use of antibiotics',
+    'Z79.4': 'Long-term current use of insulin',
+    'Z79.51': 'Long-term current use of inhaled steroids',
+    'Z79.82': 'Long-term current use of aspirin',
+    'Z79.84': 'Long-term current use of oral hypoglycemic drugs',
+    'Z79.891': 'Long-term current use of opiate analgesic',
+    'Z79.899': 'Other long-term current drug therapy',
+    'Z86.718': 'Personal history of pulmonary embolism',
+    'Z86.73': 'Personal history of transient ischemic attack (TIA)',
+    'Z87.440': 'Personal history of urinary calculi',
+    'Z99.3': 'Dependence on wheelchair',
+    'Z99.81': 'Dependence on supplemental oxygen',
+    'Z99.89': 'Dependence on other enabling machines and devices',
 }
 
 

@@ -342,7 +342,7 @@ class ICD10Predictor:
             'sx': 'symptoms', 'tx': 'treatment', 'rx': 'prescription', 'fx': 'fracture',
             'pmh': 'past medical history', 'pmhx': 'past medical history',
             'fhx': 'family history', 'shx': 'social history',
-            'ros': 'review of systems', 'pe': 'physical examination',
+            'ros': 'review of systems',
             'wbc': 'white blood cell', 'rbc': 'red blood cell', 'hgb': 'hemoglobin',
             'hct': 'hematocrit', 'plt': 'platelets', 'bmp': 'basic metabolic panel',
             'cbc': 'complete blood count', 'cmp': 'comprehensive metabolic panel',
@@ -382,7 +382,7 @@ class ICD10Predictor:
             
             # Neurological
             'cva': 'cerebrovascular accident', 'tia': 'transient ischemic attack',
-            'ms': 'multiple sclerosis', 'alz': 'alzheimer',
+            'alz': 'alzheimer',
             'loc': 'loss of consciousness', 'ams': 'altered mental status',
             
             # Musculoskeletal
@@ -408,8 +408,12 @@ class ICD10Predictor:
             'ac': 'before meals', 'pc': 'after meals',
         }
         
-        # Expand abbreviations where applicable
-        tokens = [abbrev_map.get(token, token) for token in tokens]
+        # Expand abbreviations and split multi-word expansions into atomic tokens.
+        expanded = []
+        for token in tokens:
+            expansion = abbrev_map.get(token, token)
+            expanded.extend(expansion.split())
+        tokens = expanded
         
         return tokens
     
@@ -578,8 +582,10 @@ class ICD10Predictor:
             # ======================== MENTAL / BEHAVIORAL ========================
             'F03.90': [('dementia', False, 0.6), ('cognitive decline', True, 0.4),
                         ('memory loss', True, 0.4), ('cognitive impairment', True, 0.5)],
-            'F32.A':  [('depression', False, 0.4), ('major depressive', True, 0.6),
-                        ('depressive disorder', True, 0.6)],
+            'F32.A':  [('major depressive', True, 0.6),
+                        ('depressive disorder', True, 0.6),
+                        ('patient reports depression', True, 0.5),
+                        ('history of depression', True, 0.5)],
             'F33.1':  [('recurrent depression', True, 0.6), ('recurrent depressive disorder', True, 0.7),
                         ('recurrent major depressive', True, 0.7)],
             'F41.1':  [('generalized anxiety', True, 0.6), ('anxiety disorder', True, 0.5), ('gad', False, 0.5)],
@@ -696,6 +702,8 @@ class ICD10Predictor:
         
         # Set to track which specific ICD-10 classes received a boost
         boosted_codes = set()
+        total_boost_applied = {}  # code -> cumulative boost so far
+        MAX_TOTAL_BOOST = 0.75
         
         for code, rules in keyword_rules.items():
             # Convert the ICD code string to the model's internal class index
@@ -730,14 +738,41 @@ class ICD10Predictor:
                     logger.debug(f"Negated keyword '{keyword}' for {code} — skipping boost")
                     continue
                 
-                # Apply the boost, capping at 1.0
-                probs[code_idx] = min(1.0, probs[code_idx] + boost)
-                boosted_codes.add(code)
+                # Cap cumulative boost per code to avoid inflated 100% confidence from stacked matches.
+                already_boosted = total_boost_applied.get(code, 0.0)
+                remaining_budget = max(0.0, MAX_TOTAL_BOOST - already_boosted)
+                actual_boost = min(boost, remaining_budget)
+                if actual_boost > 0:
+                    probs[code_idx] = min(1.0, probs[code_idx] + actual_boost)
+                    total_boost_applied[code] = already_boosted + actual_boost
+                    boosted_codes.add(code)
                 
-                # Track the matched keyword as evidence for the explainability layer
+                # Track matched keyword evidence while collapsing overlap.
+                # Example: keep "difficulty in walking" and drop "difficulty walking".
                 if code not in evidence:
                     evidence[code] = []
-                evidence[code].append(keyword)
+
+                current_evidence = evidence[code]
+                skip_keyword = False
+                removable = []
+
+                for existing in current_evidence:
+                    if keyword == existing:
+                        skip_keyword = True
+                        break
+                    if keyword in existing:
+                        # New keyword is less specific than an existing one.
+                        skip_keyword = True
+                        break
+                    if existing in keyword:
+                        # New keyword is more specific; replace shorter existing phrase.
+                        removable.append(existing)
+
+                if not skip_keyword:
+                    for existing in removable:
+                        if existing in current_evidence:
+                            current_evidence.remove(existing)
+                    current_evidence.append(keyword)
         
         return probs, evidence
     
@@ -801,7 +836,7 @@ class ICD10Predictor:
                         code_evidence = ev_keywords
                         break
             
-            evidence_str = ", ".join(code_evidence) if code_evidence else "CNN pattern match"
+            evidence_str = ", ".join(dict.fromkeys(code_evidence)) if code_evidence else "CNN pattern match"
             
             results.append({
                 'code': code,
