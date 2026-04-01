@@ -54,7 +54,7 @@ RANDOM_SEED = 42                # Fixed seed to ensure reproducibility of the ra
 # Architecture and learning parameters defining the Convolutional Neural Network
 # ============================================
 EMBEDDING_DIM = 128             # Dimensionality of the dense word vectors representing the vocabulary
-CNN_FILTER_SIZES = [3, 4, 5]    # Sizes of the convolutional windows (detecting 3-word, 4-word, and 5-word phrases)
+CNN_FILTER_SIZES = [2, 3, 4, 5] # Sizes of the convolutional windows (detecting 2-word, 3-word, 4-word, and 5-word phrases)
 CNN_NUM_FILTERS = 256           # Number of distinct feature maps learned for each filter size
 DROPOUT_RATE = 0.5              # Percentage of neurons randomly disabled during training to prevent overfitting
 DENSE_UNITS = [512, 256]        # Number of neurons in the fully connected layers before the final classification head

@@ -152,13 +152,13 @@ def run_analysis(text):
     # Define the sequence of fake processing steps for visual feedback
     steps = [
         "Loading CNN model weights...",
-        "Tokenizing clinical entities...",
-        "Extracting anatomical biomarkers...",
-        "Applying attention layers [1/3]...",
-        "Applying attention layers [2/3]...",
-        "Applying attention layers [3/3]...",
-        "Mapping to ICD-10 latent space...",
-        "Ranking confidence scores...",
+        "Expanding medical abbreviations (94 terms)...",
+        "Tokenizing clinical text...",
+        "Running Conv1D feature extraction (k=2,3,4,5)...",
+        "Applying max-over-time pooling...",
+        "Scoring 100 ICD-10 classes...",
+        "Applying 287 keyword rules with negation check...",
+        "Ranking predictions by confidence...",
     ]
     
     # Execute terminal animation loops with artificial delays
@@ -186,6 +186,14 @@ def run_analysis(text):
         # Return only the top 10 most confident predictions for the UI
         return predictions[:10]
         
+    except FileNotFoundError as e:
+        terminal.empty()
+        st.error(
+            "Model files not found. Please ensure all three files exist in the "
+            "'Downloaded files/ICD10_Project/' folder before running the app. "
+            f"Details: {str(e).splitlines()[0]}"
+        )
+        return None
     except Exception as e:
         terminal.empty()
         logger.exception("Analysis failed during model inference")
@@ -231,6 +239,19 @@ def step_1_input():
         label_visibility="collapsed", 
         key="text_input_field"
     )
+
+    # Live word count display for quick input quality and size feedback.
+    if text_input:
+        wc = len(text_input.split())
+        est_tokens = min(2000, wc)
+        wc_color = '#10b981' if wc >= 50 else '#f59e0b' if wc >= 20 else '#ef4444'
+        st.markdown(
+            f'<div style="font-size:0.72rem;color:{wc_color};text-align:right;'
+            f'margin-top:-0.5rem;margin-bottom:0.5rem;">'
+            f'{wc:,} words &nbsp;·&nbsp; ~{est_tokens} tokens (max 2,000)'
+            '</div>',
+            unsafe_allow_html=True
+        )
     
     if st.button("Analyze", key="btn_text", type="primary", use_container_width=True):
         if len(text_input) > 10:
@@ -340,6 +361,7 @@ def step_2_preview():
         """, unsafe_allow_html=True)
 
         text_len = len(st.session_state.extracted_text)
+        word_count = len(st.session_state.extracted_text.split())
         source = st.session_state.source_type.upper()
 
         # Display metadata
@@ -348,6 +370,10 @@ def step_2_preview():
             <div style="text-align: center;">
                 <div style="font-size: 1.5rem; font-weight: 800; color: #fff !important;">{source}</div>
                 <div style="font-size: 0.75rem; color: #555 !important; text-transform: uppercase; letter-spacing: 1px;">source</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 800; color: #fff !important;">{word_count:,}</div>
+                <div style="font-size: 0.75rem; color: #555 !important; text-transform: uppercase; letter-spacing: 1px;">words</div>
             </div>
             <div style="text-align: center;">
                 <div style="font-size: 1.5rem; font-weight: 800; color: #fff !important;">{text_len:,}</div>
@@ -363,6 +389,13 @@ def step_2_preview():
                 prev_step()
                 st.rerun()
             st.stop() # Halts execution and prevents rendering the Analyze button
+
+        if word_count < 20:
+            st.warning(
+                f"Only {word_count} words detected. For best results, paste a full clinical note "
+                "(discharge summary or doctor's note with at least 50 words). Short inputs may "
+                "produce unreliable predictions."
+            )
 
         # Text Display Box — ESCAPED for XSS prevention using html.escape
         st.markdown(f"""
@@ -410,14 +443,16 @@ def step_3_results():
     Displays the primary predicted diagnosis prominently, followed by a list 
     of secondary diagnoses and their confidence scores.
     """
-    st.markdown("""
+    preds = st.session_state.predictions
+    diagnosis_count = len(preds) if preds else 0
+    st.markdown(f"""
     <div style="text-align: center; margin-bottom: 2rem; animation: smoothRise 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
         <h2 style="font-weight: 600; color: #ffffff !important;">Analysis Complete</h2>
-        <p style="color: #888 !important;">ICD-10 codes predicted by neural network.</p>
+        <div style="font-size: 2.5rem; font-weight: 800; color: #06b6d4 !important; line-height: 1; margin: 0.5rem 0;">{diagnosis_count}</div>
+        <p style="color: #888 !important;">{"diagnosis" if diagnosis_count == 1 else "diagnoses"} identified &nbsp;·&nbsp; TextCNN + keyword rules</p>
     </div>
     """, unsafe_allow_html=True)
 
-    preds = st.session_state.predictions
     if not preds or len(preds) == 0:
         st.markdown("""
         <div style="border: 1px solid #1a1a1a; border-radius: 12px; padding: 3rem; text-align: center;">
@@ -430,6 +465,12 @@ def step_3_results():
     primary = preds[0]
     conf_pct = int(primary['confidence'] * 100)
     primary_evidence = html.escape(primary.get('evidence', 'CNN pattern match'))
+    conf_label_primary = 'High confidence' if primary['confidence'] >= 0.70 else \
+        'Moderate confidence' if primary['confidence'] >= 0.50 else 'Low confidence'
+    conf_color_primary = '#10b981' if primary['confidence'] >= 0.70 else \
+        '#f59e0b' if primary['confidence'] >= 0.50 else '#ef4444'
+    primary_source = 'keyword match' if primary_evidence != 'CNN pattern match' else 'AI pattern'
+    primary_source_color = '#10b981' if primary_source == 'keyword match' else '#6366f1'
 
     st.markdown(f"""
     <div style="border: 1px solid #222; border-radius: 14px; padding: 3rem; margin-bottom: 2rem; text-align: center; animation: smoothRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
@@ -440,10 +481,17 @@ def step_3_results():
         <div style="font-size: 1.1rem; color: #888 !important; margin-bottom: 1rem;">
             {html.escape(primary['description'])}
         </div>
+        <div style="margin-bottom: 0.75rem;">
+            <span style="font-size: 0.65rem; padding: 3px 10px; border-radius: 20px; background: {primary_source_color}22; color: {primary_source_color}; border: 1px solid {primary_source_color}44; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                {primary_source}
+            </span>
+        </div>
         <div style="font-size: 0.75rem; color: #10b981 !important; margin-bottom: 1.5rem; font-style: italic;">
             Evidence: {primary_evidence}
         </div>
-        <div style="display: inline-block; border: 1px solid #333; border-radius: 50px; padding: 0.3rem 1.2rem;">
+        <div style="display: inline-flex; align-items: center; gap: 0.6rem; border: 1px solid #333; border-radius: 50px; padding: 0.3rem 1.2rem;">
+            <span style="font-size: 0.85rem; font-weight: 700; color: {conf_color_primary} !important;">{conf_label_primary}</span>
+            <span style="font-size: 0.85rem; color: #aaa !important;">|</span>
             <span style="font-size: 0.85rem; color: #aaa !important;">Confidence: </span>
             <span style="font-size: 0.85rem; font-weight: 700; color: #fff !important;">{conf_pct}%</span>
         </div>
@@ -458,20 +506,29 @@ def step_3_results():
         for i, code in enumerate(preds[1:], 2):
             conf = code['confidence']
             conf_pct = int(conf * 100)
+            chapter_label = html.escape(code.get('chapter', ''))
+            chapter_color = code.get('color', '#555555')
+            conf_label = 'High' if conf >= 0.70 else 'Moderate' if conf >= 0.50 else 'Low'
+            evidence_raw = code.get('evidence', 'CNN pattern match')
+            source_tag = 'keyword match' if evidence_raw != 'CNN pattern match' else 'AI pattern'
             
             # Fade out lower-confidence predictions by dropping row opacity
             opacity = max(0.4, conf)
 
             code_rows.append(f"""
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid #111; animation: smoothRise {0.8 + (i*0.08)}s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
-                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                    <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
                         <div style="font-size: 1.15rem; font-weight: 700; color: #fff !important;">{html.escape(code['code'])}</div>
-                        <div style="font-size: 0.9rem; color: #777 !important;">{html.escape(code['description'])}</div>
+                        <div style="font-size: 0.88rem; color: #777 !important;">{html.escape(code['description'])}</div>
+                        <span style="font-size: 0.65rem; padding: 2px 8px; border-radius: 20px; background: {chapter_color}22; color: {chapter_color}; border: 1px solid {chapter_color}44; font-weight: 600;">{chapter_label}</span>
                     </div>
-                    <div style="font-size: 0.7rem; color: #555 !important; font-style: italic; padding-left: 0.1rem;">matched: {html.escape(code.get('evidence', 'CNN pattern match'))}</div>
+                    <div style="font-size: 0.7rem; color: #555 !important; font-style: italic;">[{source_tag}] {html.escape(evidence_raw)}</div>
                 </div>
-                <div style="font-size: 0.85rem; font-family: monospace; color: rgba(255,255,255,{opacity}) !important;">{conf_pct}%</div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.85rem; font-family: monospace; color: rgba(255,255,255,{opacity}) !important;">{conf_pct}%</div>
+                    <div style="font-size: 0.65rem; color: #555 !important;">{conf_label}</div>
+                </div>
             </div>
             """)
 

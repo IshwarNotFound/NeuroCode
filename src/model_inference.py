@@ -306,6 +306,16 @@ class ICD10Predictor:
             
             logger.info(f"Model loaded successfully — vocab: {vocab_size}, classes: {n_classes}, device: {self.device}")
             
+        except FileNotFoundError as e:
+            missing = str(e)
+            raise FileNotFoundError(
+                f"Model file not found: {missing}\n\n"
+                "SETUP REQUIRED: Place the following files before starting the app:\n"
+                "  Downloaded files/ICD10_Project/models/icd10_cnn_latest.pt\n"
+                "  Downloaded files/ICD10_Project/data/train_test_split/vocabulary.pkl\n"
+                "  Downloaded files/ICD10_Project/data/train_test_split/label_encoder.pkl\n"
+                "  Downloaded files/ICD10_Project/data/train_test_split/preprocessing_summary.json"
+            ) from e
         except Exception as e:
             logger.exception("Error loading model")
             raise
@@ -820,13 +830,14 @@ def get_predictor() -> ICD10Predictor:
     return _predictor
 
 
-def predict_icd10(text: str, top_k: int = 10) -> List[Dict]:
+def predict_icd10(text: str, top_k: int = 10, threshold: float = 0.15) -> List[Dict]:
     """
     Public entry point to be called rapidly from other parts of the application.
     
     Args:
         text (str): Complete medical note text to be parsed.
         top_k (int): Limit to the number of returned diagnoses.
+        threshold (float): Minimum confidence to include a prediction. Default 0.15.
         
     Returns:
         List of dictionaries with 'code', 'description', 'confidence', etc.
@@ -835,4 +846,4 @@ def predict_icd10(text: str, top_k: int = 10) -> List[Dict]:
     predictor = get_predictor()
     
     # Process the text against the model and return the results
-    return predictor.predict(text, top_k=top_k)
+    return predictor.predict(text, top_k=top_k, threshold=threshold)
